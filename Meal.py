@@ -198,7 +198,7 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-'''
+
 
 # Saving the updated code to a file
 updated_file_path = '/mnt/data/Updated_Meal_Plan.py'
