@@ -16,7 +16,7 @@ st.markdown("""
         section[data-testid="stSidebar"] > div:first-child {{
             background-color: #007bff;
         }}
-        /* Button color */
+        /* Style the buttons to be blue */
         .stButton > button {{
             background-color: #007bff;
             color: white;
@@ -26,7 +26,7 @@ st.markdown("""
             cursor: pointer;
             margin-top: 10px;
         }}
-        /* Style the recipe display */
+        /* Style the recipe cards */
         .recipe-container {{
             border: 1px solid #e0e0e0;
             padding: 10px;
@@ -162,20 +162,21 @@ if st.sidebar.button("Generate Shopping List"):
             for ingredient in recipe["ingredients"]:
                 food_item = ingredient["food"]
                 quantity = ingredient["quantity"] * people  # Adjusting for number of people
+                unit = ingredient.get("measure", "units")  # Adding units like grams, kilograms, etc.
                 if food_item in shopping_list:
-                    shopping_list[food_item] += quantity
+                    shopping_list[food_item]["quantity"] += quantity
                 else:
-                    shopping_list[food_item] = quantity
+                    shopping_list[food_item] = {"quantity": quantity, "unit": unit}
 
     # Display the shopping list
     st.write("## Shopping List")
-    for food, quantity in shopping_list.items():
-        st.write(f"{food}: {quantity}")
+    for food, details in shopping_list.items():
+        st.write(f"{food}: {details['quantity']} {details['unit']}")
 
 # Function to download meal plans as Excel
 def download_meal_plan():
     output = io.BytesIO()  # Use in-memory bytes buffer for the Excel file
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         for day, meals in st.session_state.meal_plan.items():
             if meals:
                 day_meals = pd.DataFrame(
