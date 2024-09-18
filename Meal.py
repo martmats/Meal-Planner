@@ -13,7 +13,7 @@ st.markdown("""
             background-color: white;
         }}
         /* Sidebar color */
-        [data-testid="stSidebar"] {{
+        section[data-testid="stSidebar"] > div:first-child {{
             background-color: #93B6F2;
         }}
         /* Style the buttons to be blue */
@@ -28,7 +28,7 @@ st.markdown("""
         }}
         /* Style the recipe cards with a border */
         .recipe-container {{
-            border: 1px solid #e0e0e0;
+            border: 1px solid #d4d4d4;
             padding: 10px;
             border-radius: 8px;
             background-color: white;
@@ -37,7 +37,6 @@ st.markdown("""
             margin-bottom: 20px;
             width: 100%;
         }}
-
         .recipe-container img {{
             border-radius: 8px;
             width: 100%;
