@@ -91,10 +91,13 @@ days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturda
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {day: [] for day in days_of_week}
 
-# Fetch API data without caching
+# Fetch API data with randomization of the start point (using 'from' parameter in API)
 def fetch_recipes(query, diet_type, calorie_limit):
     # API endpoint for Edamam Recipes API
     BASE_URL = "https://api.edamam.com/api/recipes/v2"
+    
+    # Generate a random starting point (to get different sets of recipes)
+    random_start = random.randint(0, 100)  # You can adjust the range to be larger if needed
     
     # Build the query parameters for the API request
     params = {
@@ -102,6 +105,8 @@ def fetch_recipes(query, diet_type, calorie_limit):
         "q": query,
         "app_id": EDAMAM_APP_ID,
         "app_key": EDAMAM_APP_KEY,
+        "from": random_start,  # Start from a random point
+        "to": random_start + 10  # Fetch 10 recipes
     }
     
     # Add optional filters
@@ -115,8 +120,6 @@ def fetch_recipes(query, diet_type, calorie_limit):
     
     if response.status_code == 200:
         results = response.json().get("hits", [])
-        # Shuffle the results to get a different set of recipes each time
-        random.shuffle(results)
         return results
     else:
         st.error(f"API request failed with status code {response.status_code}")
@@ -229,4 +232,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
