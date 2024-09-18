@@ -4,7 +4,7 @@ import requests
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
 
-# Apply a blue theme only for the sidebar and ensure the rest of the background remains white
+# CSS Styling: Blue Sidebar, White Background, and Recipe Card Styling
 st.markdown("""
     <style>
         .stApp {{
@@ -26,6 +26,7 @@ st.markdown("""
         }}
         .recipe-container img {{
             border-radius: 8px;
+            width: 100%;
         }}
         .recipe-container button {{
             background-color: #007bff;
@@ -39,24 +40,28 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# API credentials from Streamlit Secrets (already added in secrets.toml)
+# API credentials from Streamlit Secrets (stored in Streamlit Cloud)
 EDAMAM_APP_ID = st.secrets["app_id"]
 EDAMAM_APP_KEY = st.secrets["app_key"]
 
-# Initialize session state for the meal plan to persist data
+# Initialize the meal plan to persist data using session state
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {f"Day {i+1}": [] for i in range(7)}
 
 # API endpoint for Edamam Recipes API
 BASE_URL = "https://api.edamam.com/api/recipes/v2"
 
-# Sidebar options
+# Sidebar options for search filters
 st.sidebar.title("Meal Plan Options")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
 
 # Input field for the search query
 query = st.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
+
+# Helper function to add recipes to the meal plan
+def add_recipe_to_day(day, recipe):
+    st.session_state.meal_plan[day].append(recipe)
 
 # Search button
 if st.button("Search Recipes"):
@@ -90,7 +95,7 @@ if st.button("Search Recipes"):
                 with cols[idx % 3]:
                     st.markdown(f"""
                     <div class="recipe-container">
-                        <img src="{recipe['image']}" width="200" />
+                        <img src="{recipe['image']}" alt="Recipe Image"/>
                         <h4>{recipe['label']}</h4>
                         <p>Calories: {recipe['calories']:.0f}</p>
                         <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
@@ -99,7 +104,7 @@ if st.button("Search Recipes"):
 
                     chosen_day = st.selectbox(f"Add to which day?", list(st.session_state.meal_plan.keys()), key=f"day_{idx}")
                     if st.button(f"Add {recipe['label']} to {chosen_day}", key=f"btn_{idx}"):
-                        st.session_state.meal_plan[chosen_day].append(recipe)
+                        add_recipe_to_day(chosen_day, recipe)
 
         else:
             st.warning("No recipes found. Try adjusting your search.")
@@ -120,7 +125,7 @@ for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
         else:
             st.write("No meals added yet.")
 
-# Generate shopping list
+# Generate shopping list button
 if st.button("Generate Shopping List"):
     shopping_list = {}
     for meals in st.session_state.meal_plan.values():
