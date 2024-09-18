@@ -84,9 +84,12 @@ st.markdown(
 EDAMAM_APP_ID = st.secrets["app_id"]
 EDAMAM_APP_KEY = st.secrets["app_key"]
 
+# Days of the week
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
 # Initialize the meal plan to persist data using session state
 if "meal_plan" not in st.session_state:
-    st.session_state.meal_plan = {f"Day {i+1}": [] for i in range(7)}
+    st.session_state.meal_plan = {day: [] for day in days_of_week}
 
 # Cache API response to avoid multiple calls for the same query
 @st.cache_data
@@ -147,7 +150,7 @@ if "recipes" in st.session_state:
             recipe = recipe_data["recipe"]
             recipe_key = f"recipe_{idx}"
             if recipe_key not in st.session_state.selected_days:
-                st.session_state.selected_days[recipe_key] = "Day 1"
+                st.session_state.selected_days[recipe_key] = "Monday"  # Default to Monday if not chosen
 
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
@@ -162,7 +165,7 @@ if "recipes" in st.session_state:
 
                 selected_day = st.selectbox(
                     f"Choose day for {recipe['label']}",
-                    list(st.session_state.meal_plan.keys()), 
+                    days_of_week,  # Days of the week
                     key=f"day_{recipe_key}"
                 )
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
@@ -227,4 +230,5 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
+S
 
