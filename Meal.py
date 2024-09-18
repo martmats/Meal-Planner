@@ -1,3 +1,6 @@
+# Correcting the issues with the sidebar, recipe cards, and CSV download
+
+updated_code = '''
 import streamlit as st
 import requests
 import pandas as pd
@@ -9,15 +12,15 @@ st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout
 # CSS Styling: Sidebar Color, Recipe Card Styling with Border
 st.markdown("""
     <style>
-        .stApp {{
+        .stApp {
             background-color: white;
-        }}
+        }
         /* Sidebar color */
-        section[data-testid="stSidebar"] > div:first-child {{
+        section[data-testid="stSidebar"] > div:first-child {
             background-color: #93B6F2;
-        }}
+        }
         /* Style the buttons to be blue */
-        .stButton > button {{
+        .stButton > button {
             background-color: #007bff;
             color: white;
             border: none;
@@ -25,25 +28,26 @@ st.markdown("""
             border-radius: 8px;
             cursor: pointer;
             margin-top: 10px;
-        }}
-        /* Style the recipe cards with a border */
-        .recipe-container {{
+        }
+        /* Style the recipe cards with a border, shadow, and padding */
+        .recipe-container {
             border: 1px solid #d4d4d4;
-            padding: 10px;
+            padding: 20px;
             border-radius: 8px;
             background-color: white;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
             margin-bottom: 20px;
             width: 100%;
-        }}
-        .recipe-container img {{
+        }
+        .recipe-container img {
             border-radius: 8px;
             width: 100%;
             height: 200px;
             object-fit: cover;
-        }}
-        .recipe-container button {{
+            margin-bottom: 10px;
+        }
+        .recipe-container button {
             background-color: #007bff;
             color: white;
             border: none;
@@ -51,7 +55,7 @@ st.markdown("""
             border-radius: 8px;
             cursor: pointer;
             margin-top: 10px;
-        }}
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -181,7 +185,7 @@ def download_meal_plan():
             day_meals = pd.DataFrame(
                 [{"Recipe": meal['label'], "Calories": meal['calories']} for meal in meals]
             )
-            output.write(f"\n{day}\n")
+            output.write(f"\\n{day}\\n")
             day_meals.to_csv(output, index=False)
 
     # Ensure the buffer is ready for download
@@ -197,3 +201,12 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
+'''
+
+# Saving the updated code to a file
+updated_file_path = '/mnt/data/Updated_Meal_Plan.py'
+
+with open(updated_file_path, 'w') as updated_file:
+    updated_file.write(updated_code)
+
+updated_file_path
