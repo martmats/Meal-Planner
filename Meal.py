@@ -91,8 +91,7 @@ days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturda
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {day: [] for day in days_of_week}
 
-# Cache API response to avoid multiple calls for the same query
-@st.cache_data
+# Fetch API data without caching
 def fetch_recipes(query, diet_type, calorie_limit):
     # API endpoint for Edamam Recipes API
     BASE_URL = "https://api.edamam.com/api/recipes/v2"
@@ -225,10 +224,5 @@ def download_meal_plan():
 if st.button("Download Meal Plan as CSV"):
     csv_data = download_meal_plan()
     st.download_button(
-        label="Download CSV File",
-        data=csv_data.getvalue(),  # Getting the string value from StringIO
-        file_name="meal_plan.csv",
-        mime="text/csv"
-    )
-
-
+        label="Download CSV
+S
