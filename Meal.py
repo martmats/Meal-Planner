@@ -6,15 +6,15 @@ import io
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
 
-# CSS Styling: Blue Sidebar, White Background, and Recipe Card Styling
+# CSS Styling: Sidebar Color, Recipe Card Styling with Border
 st.markdown("""
     <style>
         .stApp {{
             background-color: white;
         }}
-        /* Blue background for the sidebar */
+        /* Sidebar color */
         section[data-testid="stSidebar"] > div:first-child {{
-            background-color: #007bff;
+            background-color: #93B6F2;
         }}
         /* Style the buttons to be blue */
         .stButton > button {{
@@ -26,9 +26,9 @@ st.markdown("""
             cursor: pointer;
             margin-top: 10px;
         }}
-        /* Style the recipe cards */
+        /* Style the recipe cards with a border */
         .recipe-container {{
-            border: 1px solid #e0e0e0;
+            border: 1px solid #d4d4d4;
             padding: 10px;
             border-radius: 8px;
             background-color: white;
@@ -173,28 +173,27 @@ if st.sidebar.button("Generate Shopping List"):
     for food, details in shopping_list.items():
         st.write(f"{food}: {details['quantity']} {details['unit']}")
 
-# Function to download meal plans as Excel
+# Function to download meal plans as CSV (to avoid Excel dependency issues)
 def download_meal_plan():
-    output = io.BytesIO()  # Use in-memory bytes buffer for the Excel file
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        for day, meals in st.session_state.meal_plan.items():
-            if meals:
-                day_meals = pd.DataFrame(
-                    [{"Recipe": meal['label'], "Calories": meal['calories']} for meal in meals]
-                )
-                day_meals.to_excel(writer, sheet_name=day, index=False)
+    output = io.StringIO()  # Use in-memory string buffer for CSV format
+    for day, meals in st.session_state.meal_plan.items():
+        if meals:
+            day_meals = pd.DataFrame(
+                [{"Recipe": meal['label'], "Calories": meal['calories']} for meal in meals]
+            )
+            output.write(f"\n{day}\n")
+            day_meals.to_csv(output, index=False)
 
     # Ensure the buffer is ready for download
     output.seek(0)
     return output
 
-# Button to download meal plan as an Excel file
-if st.button("Download Meal Plan as Excel"):
-    excel_data = download_meal_plan()
+# Button to download meal plan as a CSV file
+if st.button("Download Meal Plan as CSV"):
+    csv_data = download_meal_plan()
     st.download_button(
-        label="Download Excel File",
-        data=excel_data,
-        file_name="meal_plan.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="Download CSV File",
+        data=csv_data,
+        file_name="meal_plan.csv",
+        mime="text/csv"
     )
-
