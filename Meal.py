@@ -1,18 +1,20 @@
 import streamlit as st
 import requests
-import os
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
 
-# Apply a blue theme to the app
+# Apply a blue theme for the sidebar
 st.markdown("""
     <style>
         body {
             background-color: #f0f8ff;
         }
         .stApp {
-            background-color: #e0f2ff;
+            background-color: #f0f8ff;
+        }
+        .css-18e3th9 {
+            background-color: #007bff;
         }
         .stButton > button {
             background-color: #007bff;
@@ -25,20 +27,20 @@ st.markdown("""
 EDAMAM_APP_ID = st.secrets["app_id"]
 EDAMAM_APP_KEY = st.secrets["app_key"]
 
+# Initialize session state for the meal plan to persist data
+if "meal_plan" not in st.session_state:
+    st.session_state.meal_plan = {f"Day {i+1}": [] for i in range(7)}
+
 # API endpoint for Edamam Recipes API
 BASE_URL = "https://api.edamam.com/api/recipes/v2"
 
-# Sidebar options for search filters
-st.sidebar.title("Meal Plan Generator")
-num_days = st.sidebar.selectbox("Select number of days", [7, 14, 30], index=0)
+# Sidebar options
+st.sidebar.title("Meal Plan Options")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
 
 # Input field for the search query
 query = st.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
-
-# A dictionary to store meal plans for each day
-meal_plan = {f"Day {i+1}": [] for i in range(num_days)}
 
 # Search button
 if st.button("Search Recipes"):
@@ -65,45 +67,42 @@ if st.button("Search Recipes"):
         if recipes:
             st.write(f"## Showing {len(recipes)} recipes for **{query}**")
 
-            # Create a container for the rows
-            container = st.container()
-            columns = st.columns(3)  # Display recipes in 3 columns (row format)
-
-            # Display recipes in row format (3 columns per row)
+            # Display recipes in card format with 3 columns
+            cols = st.columns(3)
             for idx, recipe_data in enumerate(recipes):
                 recipe = recipe_data["recipe"]
-                col_idx = idx % 3  # Display 3 items per row
-                with columns[col_idx]:
-                    st.image(recipe["image"], width=200)
+                with cols[idx % 3]:
+                    st.image(recipe["image"], use_column_width=True)
                     st.write(f"**{recipe['label']}**")
                     st.write(f"Calories: {recipe['calories']:.0f}")
                     st.write(f"[View Recipe]({recipe['url']})")
-                    # Option to add recipe to the meal plan for a specific day
-                    chosen_day = st.selectbox(f"Add to which day?", list(meal_plan.keys()), key=recipe['label'])
-                    if st.button(f"Add {recipe['label']} to {chosen_day}", key=f"btn_{recipe['label']}"):
-                        meal_plan[chosen_day].append(recipe)
-            st.write("---")
+                    chosen_day = st.selectbox(f"Add to which day?", list(st.session_state.meal_plan.keys()), key=f"day_{idx}")
+                    if st.button(f"Add {recipe['label']} to {chosen_day}", key=f"btn_{idx}"):
+                        st.session_state.meal_plan[chosen_day].append(recipe)
+
         else:
             st.warning("No recipes found. Try adjusting your search.")
     else:
         st.error(f"API request failed with status code {response.status_code}")
         st.write(response.text)
 
-# Display the meal plan
+# Display the meal plan in a calendar-like format
 st.write("## Your Meal Plan")
-for day, meals in meal_plan.items():
-    st.write(f"### {day}")
-    if meals:
-        for meal in meals:
-            st.write(f"- {meal['label']} ({meal['calories']:.0f} calories)")
-    else:
-        st.write("No meals added yet.")
 
-# Button to generate a shopping list based on the meal plan
+cols = st.columns(7)  # Display days in a 7-column format (calendar style)
+for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
+    with cols[idx % 7]:
+        st.write(f"### {day}")
+        if meals:
+            for meal in meals:
+                st.write(f"- {meal['label']} ({meal['calories']:.0f} calories)")
+        else:
+            st.write("No meals added yet.")
+
+# Generate shopping list
 if st.button("Generate Shopping List"):
-    # Combine ingredients for all recipes
     shopping_list = {}
-    for meals in meal_plan.values():
+    for meals in st.session_state.meal_plan.values():
         for recipe in meals:
             for ingredient in recipe["ingredients"]:
                 if ingredient["food"] in shopping_list:
@@ -111,7 +110,7 @@ if st.button("Generate Shopping List"):
                 else:
                     shopping_list[ingredient["food"]] = ingredient["quantity"]
 
-    # Display shopping list
+    # Display the shopping list
     st.write("## Shopping List")
     for food, quantity in shopping_list.items():
         st.write(f"{food}: {quantity}")
