@@ -4,22 +4,38 @@ import requests
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
 
-# Apply a blue theme for the sidebar
+# Apply a blue theme only for the sidebar and ensure the rest of the background remains white
 st.markdown("""
     <style>
-        body {
-            background-color: #f0f8ff;
-        }
-        .stApp {
-            background-color: #f0f8ff;
-        }
-        .css-18e3th9 {
+        .stApp {{
+            background-color: white;
+        }}
+        /* Blue background for the sidebar */
+        section[data-testid="stSidebar"] {{
             background-color: #007bff;
-        }
-        .stButton > button {
+        }}
+        /* Style the recipe display */
+        .recipe-container {{
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        .recipe-container img {{
+            border-radius: 8px;
+        }}
+        .recipe-container button {{
             background-color: #007bff;
             color: white;
-        }
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -72,10 +88,15 @@ if st.button("Search Recipes"):
             for idx, recipe_data in enumerate(recipes):
                 recipe = recipe_data["recipe"]
                 with cols[idx % 3]:
-                    st.image(recipe["image"], use_column_width=True)
-                    st.write(f"**{recipe['label']}**")
-                    st.write(f"Calories: {recipe['calories']:.0f}")
-                    st.write(f"[View Recipe]({recipe['url']})")
+                    st.markdown(f"""
+                    <div class="recipe-container">
+                        <img src="{recipe['image']}" width="200" />
+                        <h4>{recipe['label']}</h4>
+                        <p>Calories: {recipe['calories']:.0f}</p>
+                        <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
+                    </div>
+                    """, unsafe_allow_html=True)
+
                     chosen_day = st.selectbox(f"Add to which day?", list(st.session_state.meal_plan.keys()), key=f"day_{idx}")
                     if st.button(f"Add {recipe['label']} to {chosen_day}", key=f"btn_{idx}"):
                         st.session_state.meal_plan[chosen_day].append(recipe)
@@ -114,4 +135,3 @@ if st.button("Generate Shopping List"):
     st.write("## Shopping List")
     for food, quantity in shopping_list.items():
         st.write(f"{food}: {quantity}")
-
