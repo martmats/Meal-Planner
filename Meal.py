@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import pandas as pd
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -23,10 +24,13 @@ st.markdown("""
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
             margin-bottom: 20px;
+            width: 100%;
         }}
         .recipe-container img {{
             border-radius: 8px;
             width: 100%;
+            height: 200px;
+            object-fit: cover;
         }}
         .recipe-container button {{
             background-color: #007bff;
@@ -99,14 +103,14 @@ if "recipes" in st.session_state:
     recipes = st.session_state.recipes
     if recipes:
         st.write(f"## Showing {len(recipes)} recipes for **{query}**")
-        cols = st.columns(3)
+        cols = st.columns(4)  # 4 columns in a row
         for idx, recipe_data in enumerate(recipes):
             recipe = recipe_data["recipe"]
             recipe_key = f"recipe_{idx}"
             if recipe_key not in st.session_state.selected_days:
                 st.session_state.selected_days[recipe_key] = "Day 1"
 
-            with cols[idx % 3]:
+            with cols[idx % 4]:  # Switch to 4 columns
                 st.markdown(f"""
                 <div class="recipe-container">
                     <img src="{recipe['image']}" alt="Recipe Image"/>
@@ -156,3 +160,27 @@ if st.sidebar.button("Generate Shopping List"):
     st.write("## Shopping List")
     for food, quantity in shopping_list.items():
         st.write(f"{food}: {quantity}")
+
+# Function to download meal plans as Excel
+def download_meal_plan():
+    # Create a Pandas Excel writer
+    with pd.ExcelWriter("/mnt/data/meal_plan.xlsx", engine='xlsxwriter') as writer:
+        for day, meals in st.session_state.meal_plan.items():
+            if meals:
+                day_meals = pd.DataFrame(
+                    [{"Recipe": meal['label'], "Calories": meal['calories']} for meal in meals]
+                )
+                day_meals.to_excel(writer, sheet_name=day, index=False)
+
+        writer.save()
+
+# Button to download meal plan as an Excel file
+if st.button("Download Meal Plan as Excel"):
+    download_meal_plan()
+    with open("/mnt/data/meal_plan.xlsx", "rb") as file:
+        st.download_button(
+            label="Download Excel File",
+            data=file,
+            file_name="meal_plan.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
