@@ -147,7 +147,7 @@ if "recipes" in st.session_state:
             recipe = recipe_data["recipe"]
             recipe_key = f"recipe_{idx}"
             if recipe_key not in st.session_state.selected_days:
-                st.session_state.selected_days[recipe_key] = "Day 1"
+                st.session_state.selected_days[recipe_key] = "Monday"
 
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
