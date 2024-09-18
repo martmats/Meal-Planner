@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import io
+import random
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -111,7 +112,10 @@ def fetch_recipes(query, diet_type, calorie_limit):
     response = requests.get(BASE_URL, params=params)
     
     if response.status_code == 200:
-        return response.json().get("hits", [])
+        results = response.json().get("hits", [])
+        # Shuffle the results to get a different set of recipes each time
+        random.shuffle(results)
+        return results
     else:
         st.error(f"API request failed with status code {response.status_code}")
         st.write(response.text)
@@ -203,11 +207,12 @@ if st.sidebar.button("Generate Shopping List"):
 # Function to download meal plans as CSV (fixed to output valid text format)
 def download_meal_plan():
     output = io.StringIO()  # Use in-memory string buffer for CSV format
-    output.write("Day,Recipe,Calories,URL\\n")  # Added URL column for recipe link
+    output.write("Day,Recipe,URL\n")  # Correct header for CSV
+    
+    # Iterate through the meal plan and write to CSV
     for day, meals in st.session_state.meal_plan.items():
-        if meals:
-            for meal in meals:
-                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\\n")
+        for meal in meals:
+            output.write(f"{day},{meal['label']},{meal['url']}\n")
     
     # Ensure the buffer is ready for download
     output.seek(0)
