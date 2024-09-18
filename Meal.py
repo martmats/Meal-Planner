@@ -6,8 +6,9 @@ import io
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
 
-# CSS Styling: Sidebar Color, Recipe Card Styling with Border
-st.markdown("""
+# CSS Styling: Sidebar Color, Recipe Card Styling with Border and Hover effect
+st.markdown(
+    """
     <style>
         .stApp {
             background-color: white;
@@ -37,6 +38,9 @@ st.markdown("""
             margin-bottom: 20px;
             width: 100%;
         }
+        .recipe-container:hover {
+            border-color: #007bff;
+        }
         .recipe-container img {
             border-radius: 8px;
             width: 100%;
@@ -53,8 +57,16 @@ st.markdown("""
             cursor: pointer;
             margin-top: 10px;
         }
+        .recipe-container a {
+            color: #007bff;
+        }
+        .recipe-container select, .recipe-container button {
+            margin-top: 10px;
+        }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # API credentials from Streamlit Secrets (stored in Streamlit Cloud)
 EDAMAM_APP_ID = st.secrets["app_id"]
@@ -128,8 +140,9 @@ if "recipes" in st.session_state:
                     <img src="{recipe['image']}" alt="Recipe Image"/>
                     <h4>{recipe['label']}</h4>
                     <p>Calories: {recipe['calories']:.0f}</p>
-                    <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
-                </div>
+                    <a href="{recipe['url']}" target="_blank">View Recipe</a>
+                    <br/>
+                    <label>Choose day for {recipe['label']}:</label>
                 """, unsafe_allow_html=True)
 
                 selected_day = st.selectbox(
@@ -140,6 +153,8 @@ if "recipes" in st.session_state:
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
                     add_recipe_to_day(selected_day, recipe)
 
+                st.markdown("</div>", unsafe_allow_html=True)
+
 # Display the meal plan in a calendar-like format
 st.write("## Your Meal Plan")
 cols = st.columns(7)
@@ -148,7 +163,7 @@ for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
         st.write(f"### {day}")
         if meals:
             for meal in meals:
-                st.write(f"- {meal['label']} ({meal['calories']:.0f} calories)")
+                st.write(f"- [{meal['label']}]({meal['url']}) ({meal['calories']:.0f} calories)")
         else:
             st.write("No meals added yet.")
 
@@ -174,17 +189,15 @@ if st.sidebar.button("Generate Shopping List"):
     for food, details in shopping_list.items():
         st.write(f"{food}: {details['quantity']} {details['unit']}")
 
-# Function to download meal plans as CSV (to avoid Excel dependency issues)
+# Function to download meal plans as CSV (fixed to output valid text format)
 def download_meal_plan():
     output = io.StringIO()  # Use in-memory string buffer for CSV format
+    output.write("Day,Recipe,Calories,URL\\n")  # Added URL column for recipe link
     for day, meals in st.session_state.meal_plan.items():
         if meals:
-            day_meals = pd.DataFrame(
-                [{"Recipe": meal['label'], "Calories": meal['calories']} for meal in meals]
-            )
-            output.write(f"\\n{day}\\n")
-            day_meals.to_csv(output, index=False)
-
+            for meal in meals:
+                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\\n")
+    
     # Ensure the buffer is ready for download
     output.seek(0)
     return output
@@ -194,16 +207,7 @@ if st.button("Download Meal Plan as CSV"):
     csv_data = download_meal_plan()
     st.download_button(
         label="Download CSV File",
-        data=csv_data,
+        data=csv_data.getvalue(),  # Getting the string value from StringIO
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
-
-# Saving the updated code to a file
-updated_file_path = '/mnt/data/Updated_Meal_Plan.py'
-
-with open(updated_file_path, 'w') as updated_file:
-    updated_file.write(updated_code)
-
-updated_file_path
