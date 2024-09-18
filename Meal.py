@@ -224,5 +224,9 @@ def download_meal_plan():
 if st.button("Download Meal Plan as CSV"):
     csv_data = download_meal_plan()
     st.download_button(
-        label="Download CSV
-S
+        label="Download CSV File",
+        data=csv_data.getvalue(),  # Getting the string value from StringIO
+        file_name="meal_plan.csv",
+        mime="text/csv"
+    )
+
