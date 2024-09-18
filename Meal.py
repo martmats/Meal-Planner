@@ -1,6 +1,3 @@
-# Correcting the issues with the sidebar, recipe cards, and CSV download
-
-updated_code = '''
 import streamlit as st
 import requests
 import pandas as pd
