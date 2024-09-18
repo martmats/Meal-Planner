@@ -37,6 +37,9 @@ st.markdown(
             text-align: center;
             margin-bottom: 20px;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .recipe-container:hover {
             border-color: #007bff;
@@ -62,6 +65,10 @@ st.markdown(
         }
         .recipe-container select, .recipe-container button {
             margin-top: 10px;
+        }
+        .recipe-container .recipe-actions {
+            margin-top: 15px;
+            padding-top: 10px;
         }
     </style>
     """,
@@ -141,8 +148,8 @@ if "recipes" in st.session_state:
                     <h4>{recipe['label']}</h4>
                     <p>Calories: {recipe['calories']:.0f}</p>
                     <a href="{recipe['url']}" target="_blank">View Recipe</a>
-                    <br/>
-                    <label>Choose day for {recipe['label']}:</label>
+                    <div class="recipe-actions">
+                        <label>Choose day for {recipe['label']}:</label>
                 """, unsafe_allow_html=True)
 
                 selected_day = st.selectbox(
@@ -153,7 +160,7 @@ if "recipes" in st.session_state:
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
                     add_recipe_to_day(selected_day, recipe)
 
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div></div>", unsafe_allow_html=True)
 
 # Display the meal plan in a calendar-like format
 st.write("## Your Meal Plan")
@@ -192,11 +199,11 @@ if st.sidebar.button("Generate Shopping List"):
 # Function to download meal plans as CSV (fixed to output valid text format)
 def download_meal_plan():
     output = io.StringIO()  # Use in-memory string buffer for CSV format
-    output.write("Day,Recipe,Calories,URL\\n")  # Added URL column for recipe link
+    output.write("Day,Recipe,Calories,URL\n")  # Added URL column for recipe link
     for day, meals in st.session_state.meal_plan.items():
         if meals:
             for meal in meals:
-                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\\n")
+                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\n")
     
     # Ensure the buffer is ready for download
     output.seek(0)
@@ -211,3 +218,4 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
+
