@@ -69,6 +69,10 @@ st.markdown(
         .recipe-container .recipe-actions {
             margin-top: 15px;
             padding-top: 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
     </style>
     """,
@@ -113,14 +117,11 @@ def fetch_recipes(query, diet_type, calorie_limit):
         st.write(response.text)
         return []
 
-# Sidebar options for search filters and search query
+# Sidebar options for search filters and search query (Search input first)
 st.sidebar.title("Meal Plan Options")
 query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
-if st.sidebar.button("Search Recipes"):
-    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
 if st.sidebar.button("Search Recipes"):
     st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 
@@ -202,11 +203,11 @@ if st.sidebar.button("Generate Shopping List"):
 # Function to download meal plans as CSV (fixed to output valid text format)
 def download_meal_plan():
     output = io.StringIO()  # Use in-memory string buffer for CSV format
-    output.write("Day,Recipe,Calories,URL\n")  # Added URL column for recipe link
+    output.write("Day,Recipe,Calories,URL\\n")  # Added URL column for recipe link
     for day, meals in st.session_state.meal_plan.items():
         if meals:
             for meal in meals:
-                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\n")
+                output.write(f"{day},{meal['label']},{meal['calories']},{meal['url']}\\n")
     
     # Ensure the buffer is ready for download
     output.seek(0)
