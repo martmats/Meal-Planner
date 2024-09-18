@@ -115,6 +115,9 @@ def fetch_recipes(query, diet_type, calorie_limit):
 
 # Sidebar options for search filters and search query
 st.sidebar.title("Meal Plan Options")
+query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
+if st.sidebar.button("Search Recipes"):
+    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
 query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
