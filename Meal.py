@@ -67,32 +67,30 @@ if "meal_plan" not in st.session_state:
 if "selected_days" not in st.session_state:
     st.session_state.selected_days = {}
 
-# Initialize the offset to use with the 'from' and 'to' parameters
+# Initialize the offset for pagination to use with the 'from' and 'to' parameters
 if "offset" not in st.session_state:
     st.session_state.offset = 0
 
-# Function to clear cached results
+# Function to clear cached results and reset pagination
 def clear_recipe_cache():
     if "recipes" in st.session_state:
         del st.session_state["recipes"]
-    if "next_page_url" in st.session_state:
-        del st.session_state["next_page_url"]
     st.session_state.offset = 0  # Reset the offset when a new search is made
 
-# Function to fetch recipes with randomization in the query (adds unused random parameter)
+# Function to fetch recipes, using 'from' and 'to' parameters for pagination
 def fetch_recipes(query, diet_type, calorie_limit, from_index=0, to_index=10):
     url = "https://api.edamam.com/api/recipes/v2"
     
-    # Add a random seed to make each query unique
+    # Random seed to ensure different results for the same query
     random_seed = random.randint(1, 10000)
     params = {
         "type": "public",
         "q": query,
         "app_id": st.secrets["app_id"],
         "app_key": st.secrets["app_key"],
-        "random": random_seed,  # Unused parameter to randomize the request
         "from": from_index,
-        "to": to_index
+        "to": to_index,
+        "random": random_seed  # Unused parameter to randomize the request
     }
     
     # Add optional filters
@@ -107,8 +105,6 @@ def fetch_recipes(query, diet_type, calorie_limit, from_index=0, to_index=10):
     if response.status_code == 200:
         data = response.json()
         recipes = data.get("hits", [])
-        
-        # Save the next page URL if available
         return recipes
     else:
         st.error(f"API request failed with status code {response.status_code}")
@@ -117,12 +113,12 @@ def fetch_recipes(query, diet_type, calorie_limit, from_index=0, to_index=10):
 
 # Sidebar options for search filters and search query
 st.sidebar.title("Meal Plan Generator")
+query = st.sidebar.text_input("Search here", "dinner")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-query = st.text_input("Search here", "")
 
-# Clear previous results if the search button is clicked
-if st.button("Search"):
+# Clear previous results and reset pagination if the search button is clicked
+if st.sidebar.button("Search"):
     if query:
         clear_recipe_cache()
         # Fetch the first batch of recipes, and increase the offset for future searches
@@ -131,7 +127,7 @@ if st.button("Search"):
 
 # Button to fetch the next page of recipes if available
 if "recipes" in st.session_state and st.session_state.recipes:
-    if st.button("Load More Recipes"):
+    if st.sidebar.button("Load More Recipes"):
         # Fetch the next batch of recipes and increase the offset
         new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.offset, st.session_state.offset + 10)
         st.session_state.recipes.extend(new_recipes)
@@ -221,7 +217,7 @@ def download_meal_plan():
     return output
 
 # Button to download meal plan as a CSV file
-if st.button("Download Meal Plan as CSV"):
+if st.sidebar.button("Download Meal Plan as CSV"):
     csv_data = download_meal_plan()
     st.download_button(
         label="Download CSV File",
@@ -229,6 +225,5 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
 
 
