@@ -69,30 +69,29 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Fetch recipes from API function
+# Function to fetch recipes from API
 def get_recipes(query):
     url = f"https://api.edamam.com/search?q={query}&app_id=YOUR_APP_ID&app_key=YOUR_APP_KEY&from=0&to=100"
     response = requests.get(url)
     data = response.json()
-    
+
     if 'hits' in data:
-        recipes = data['hits']
-        return [recipe['recipe'] for recipe in recipes]
+        return [hit['recipe'] for hit in data['hits']]
     else:
         return []
 
-# Function to display a random set of recipes
+# Function to display recipes, shuffle them, and avoid repeats
 def display_random_recipes(recipes, num_to_display=5):
     random.shuffle(recipes)  # Shuffle the recipes to get random ones each time
     
     # Keep track of displayed recipes to avoid repeats
-    if "displayed_recipes" not in st.session_state:
+    if 'displayed_recipes' not in st.session_state:
         st.session_state.displayed_recipes = []
 
-    # Exclude previously displayed recipes
+    # Filter out recipes that were previously displayed
     new_recipes = [recipe for recipe in recipes if recipe['label'] not in st.session_state.displayed_recipes]
 
-    # Select the recipes to display and update the session state to avoid repeats
+    # Display the new recipes and update session state
     for recipe in new_recipes[:num_to_display]:
         st.markdown(f"""
             <div class="recipe-container">
@@ -103,13 +102,13 @@ def display_random_recipes(recipes, num_to_display=5):
             </div>
         """, unsafe_allow_html=True)
         
-        # Add the recipe label to the session state to avoid showing it again
+        # Add recipe to the session state to avoid showing it again
         st.session_state.displayed_recipes.append(recipe['label'])
 
 # Sidebar input for search query
 search_term = st.sidebar.text_input("Search for recipes (e.g., chicken, beef, vegan)", "")
 
-# Buttons to navigate to sections
+# Add buttons to navigate to meal planner and shopping list sections
 if st.sidebar.button("Go to Meal Planner"):
     st.session_state.scroll_to_meal_plan = True
 
@@ -127,24 +126,23 @@ if st.sidebar.button("Search"):
     else:
         st.write("Please enter a search term.")
 
-# Placeholder for Meal Planner
+# Placeholder for Meal Planner section
 meal_plan_placeholder = st.empty()
 meal_plan_placeholder.markdown("## Meal Planner")
-# Code for displaying meal planner would go here
+# The code to generate the meal planner would go here
 
-# Placeholder for Shopping List
+# Placeholder for Shopping List section
 shopping_list_placeholder = st.empty()
 shopping_list_placeholder.markdown("## Shopping List")
-# Code for generating the shopping list would go here
+# The code to generate the shopping list would go here
 
-# Scroll to the Meal Planner if the button was clicked
-if "scroll_to_meal_plan" in st.session_state and st.session_state.scroll_to_meal_plan:
-    meal_plan_placeholder.empty()
+# Scroll to the Meal Planner section if the button was clicked
+if 'scroll_to_meal_plan' in st.session_state and st.session_state.scroll_to_meal_plan:
     st.write("## Meal Planner")
-    st.session_state.scroll_to_meal_plan = False
+    st.session_state.scroll_to_meal_plan = False  # Reset the flag after scrolling
 
-# Scroll to the Shopping List if the button was clicked
-if "scroll_to_shopping_list" in st.session_state and st.session_state.scroll_to_shopping_list:
-    shopping_list_placeholder.empty()
+# Scroll to the Shopping List section if the button was clicked
+if 'scroll_to_shopping_list' in st.session_state and st.session_state.scroll_to_shopping_list:
     st.write("## Shopping List")
-    st.session_state.scroll_to_shopping_list = False
+    st.session_state.scroll_to_shopping_list = False  # Reset the flag after scrolling
+
