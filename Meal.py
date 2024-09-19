@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 import io
 import random
-import time  # For randomization
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -68,14 +67,6 @@ if "meal_plan" not in st.session_state:
 if "selected_days" not in st.session_state:
     st.session_state.selected_days = {}
 
-# Initialize the page number in session state for pagination
-if "page" not in st.session_state:
-    st.session_state.page = 0  # Start with page 0
-
-# Initialize the total number of recipes in session state
-if "total_recipes" not in st.session_state:
-    st.session_state.total_recipes = 0  # Start with 0 recipes
-
 # Function to clear cached results
 def clear_recipe_cache():
     if "recipes" in st.session_state:
@@ -83,46 +74,38 @@ def clear_recipe_cache():
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
 
-# Reset the page number when the user performs a new search
-def reset_pagination():
-    st.session_state.page = 0
-
-# Modify the fetch_recipes function to use the from and to parameters for pagination
+# Function to fetch recipes with randomization in the query (adds unused random parameter)
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
-    url = "https://api.edamam.com/api/recipes/v2"
-    
-    # Set pagination parameters using st.session_state.page
-    page_size = 10  # Number of recipes per page
-    from_index = st.session_state.page * page_size
-    to_index = from_index + page_size
-    
-    # Add a random timestamp to make each query unique
-    random_seed = random.randint(1, 10000)
-    params = {
-        "type": "public",
-        "q": query,  # Keep the search query unchanged
-        "app_id": st.secrets["app_id"],  # Your App ID
-        "app_key": st.secrets["app_key"],  # Your App Key
-        "from": from_index,  # Starting index for pagination
-        "to": to_index,  # Ending index for pagination
-        "random": random_seed  # Unused parameter to randomize the request
-    }
-    
-    # Add optional filters
-    if diet_type != "None":
-        params["diet"] = diet_type.lower()
-    if calorie_limit > 0:
-        params["calories"] = f"lte {calorie_limit}"
+    if next_page:
+        url = next_page  # Use next page URL for pagination
+    else:
+        url = "https://api.edamam.com/api/recipes/v2"
+        # Add a random timestamp to make each query unique
+        random_seed = random.randint(1, 10000)
+        params = {
+            "type": "public",
+            "q": query,  # Keep the search query unchanged
+            "app_id": st.secrets["app_id"],  # Your App ID
+            "app_key": st.secrets["app_key"],  # Your App Key
+            "random": random_seed  # Unused parameter to randomize the request
+        }
+        
+        # Add optional filters
+        if diet_type != "None":
+            params["diet"] = diet_type.lower()
+        if calorie_limit > 0:
+            params["calories"] = f"lte {calorie_limit}"
     
     # Send API request
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params if not next_page else None)
     
     if response.status_code == 200:
         data = response.json()
         recipes = data.get("hits", [])
         
-        # Save the total number of recipes if available (used for calculating total pages)
-        st.session_state.total_recipes = data.get("count", 0)
+        # Save the next page URL if available
+        next_page_url = data["_links"].get("next", {}).get("href", None)
+        st.session_state.next_page_url = next_page_url
         
         return recipes
     else:
@@ -136,38 +119,26 @@ diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-P
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
 query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
 
-# Clear previous results and reset pagination if the search button is clicked
+# Clear previous results if the search button is clicked
 if st.sidebar.button("Search Recipes"):
     clear_recipe_cache()
-    reset_pagination()
     st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 
-# Pagination buttons to navigate between pages
-if "recipes" in st.session_state and st.session_state.recipes:
-    total_pages = st.session_state.total_recipes // 10 + 1  # Assuming 10 recipes per page
-    current_page = st.session_state.page + 1  # Current page number (1-based index)
+# Button to fetch the next page of recipes if available
+if "next_page_url" in st.session_state and st.session_state.next_page_url:
+    if st.sidebar.button("Load More Recipes"):
+        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
+        st.session_state.recipes.extend(new_recipes)
 
-    # Display next/previous buttons only if there are multiple pages
-    col1, col2 = st.sidebar.columns(2)
-    
-    if current_page > 1:
-        if col1.button("Previous Page"):
-            st.session_state.page -= 1
-            st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
-    
-    if current_page < total_pages:
-        if col2.button("Next Page"):
-            st.session_state.page += 1
-            st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
-    
-    # Display current page information
-    st.sidebar.write(f"Page {current_page} of {total_pages}")
+# Helper function to add recipes to the meal plan
+def add_recipe_to_day(day, recipe):
+    st.session_state.meal_plan[day].append(recipe)
 
-# Display fetched recipes
+# Show recipes if search has been performed
 if "recipes" in st.session_state:
     recipes = st.session_state.recipes
     if recipes:
-        st.write(f"## Showing {len(recipes)} recipes for **{query}** (Page {current_page})")
+        st.write(f"## Showing {len(recipes)} recipes for **{query}**")
         cols = st.columns(5)  # 5 columns in a row
         for idx, recipe_data in enumerate(recipes):
             recipe = recipe_data["recipe"]
@@ -192,10 +163,6 @@ if "recipes" in st.session_state:
                 )
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
                     add_recipe_to_day(selected_day, recipe)
-
-# Helper function to add recipes to the meal plan
-def add_recipe_to_day(day, recipe):
-    st.session_state.meal_plan[day].append(recipe)
 
 # Display the meal plan in a calendar-like format with recipe URL
 st.write("## Your Meal Plan")
