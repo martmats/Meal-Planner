@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import random
-import time
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -104,9 +103,9 @@ if "recipes" not in st.session_state:
 
 # Search function triggered by user
 def search_recipes():
-    query = st.sidebar.text_input("Search for recipes", "")
+    query = st.sidebar.text_input("Search for recipes", "chicken")  # Default query for initialization
     diet_type = st.sidebar.selectbox("Choose a diet type", ["None", "Balanced", "Low-Carb", "High-Protein"])
-    calorie_limit = st.sidebar.slider("Set calorie limit", 100, 2000, 500)
+    calorie_limit = st.sidebar.number_input("Set calorie limit (max)", value=500, min_value=100, max_value=2000, step=50)
 
     if st.sidebar.button("Search"):
         # Add random seed to fetch different results each time the search button is clicked
@@ -119,20 +118,23 @@ def search_recipes():
             st.session_state.recipes["hits"].extend(more_recipes["hits"])
             st.session_state.next_page_url = more_recipes.get("_links", {}).get("next", {}).get("href")
 
-# Display the recipes
+# Display the recipes in recipe boxes
 def display_recipes(recipes):
-    for recipe in recipes.get("hits", []):
-        st.markdown(
-            f"""
-            <div class="recipe-container">
-                <img src="{recipe['recipe']['image']}" alt="{recipe['recipe']['label']}">
-                <h3>{recipe['recipe']['label']}</h3>
-                <p>Calories: {recipe['recipe']['calories']:.2f}</p>
-                <a href="{recipe['recipe']['url']}" target="_blank">View Recipe</a>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    if recipes:
+        for recipe in recipes.get("hits", []):
+            st.markdown(
+                f"""
+                <div class="recipe-container">
+                    <img src="{recipe['recipe']['image']}" alt="{recipe['recipe']['label']}">
+                    <h3>{recipe['recipe']['label']}</h3>
+                    <p>Calories: {recipe['recipe']['calories']:.2f}</p>
+                    <a href="{recipe['recipe']['url']}" target="_blank">View Recipe</a>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        st.write("No recipes found. Try adjusting your search criteria.")
 
 # Display meal plan and shopping list
 def display_meal_plan():
@@ -172,3 +174,4 @@ search_recipes()
 if "recipes" in st.session_state:
     display_recipes(st.session_state.recipes)
 display_meal_plan()
+
