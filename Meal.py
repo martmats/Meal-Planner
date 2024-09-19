@@ -219,6 +219,4 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-sv"
-    )
 
