@@ -1,28 +1,58 @@
-# 🎬 Movie Recommendation App
+# Meal Planner 🍽️
 
-This is a simple Streamlit app that provides movie recommendations based on user input. You can search for movies by title or genre, and the app will return relevant movie details such as the title, plot, rating, genre, and where you can stream it.
+Welcome to the **Meal Planner App**! This app helps you generate meal plans based on your preferences and provides a detailed shopping list based on the selected recipes. It’s simple, efficient, and tailored to meet your dietary needs.
 
-## 🚀 Features
+## 🚀 Live App
+You can access the app [here](https://meal-planner-best.streamlit.app/).
 
-- **Search by Title**: Enter a movie title to find similar movies.
-- **Search by Genre**: Choose a genre to get a random movie recommendation from that genre.
-- **Movie Details**: See the movie's plot, rating, genre, and streaming platform.
-- **Integrated with Google Generative AI**: Uses `google.generativeai` to generate movie recommendations based on titles.
+---
 
+## ✨ Features
 
-## 📖 Usage
+- **Search Recipes**: You can search for recipes by entering keywords (e.g., chicken, vegan pasta).
+- **Diet Preferences**: Filter recipes by diet type, such as Balanced, Low-Carb, or High-Protein.
+- **Calorie Limit**: Optionally set a maximum calorie limit for recipes.
+- **Meal Planner**: Add recipes to your meal plan and organize them by day (Monday, Tuesday, etc.).
+- **Shopping List**: Automatically generate a shopping list based on the recipes in your meal plan, with the ability to adjust for the number of people.
+- **Download as CSV**: Download your meal plan as a CSV file for easy access and sharing.
 
-Open your web browser and navigate to the local URL provided by Streamlit to start exploring MovieDash.
-Use the sidebar to navigate between different sections: Daily Hot Picks, Weekly Trendy Films, Monthly Highlights, Streaming Options, and Interesting Facts.
-Click on any movie entry to view more details, including the overview, genres, and available streaming providers.
+---
 
-## 🤝 Contributing
+## 🛠️ How to Use
 
-Contributions are welcome! If you have any improvements or new features to add, please fork the repository, create a new branch, and submit a pull request. Make sure to follow the coding standards and include appropriate tests for any new functionality.
+1. **Search Recipes**: Start by entering a keyword in the search bar (e.g., "chicken") and apply any dietary filters or calorie limits as needed.
+2. **View Recipes**: Browse the recipes displayed and click "View Recipe" to see more details.
+3. **Plan Your Meals**:
+   - Select which day to add the recipe to using the dropdown.
+   - Click the "Add to Day" button to add the recipe to your chosen day's meal plan.
+4. **Generate Shopping List**: After filling your meal plan, you can generate a shopping list by specifying how many people the meals will serve.
+5. **Download Meal Plan**: If you'd like to download the meal plan, click the "Download CSV" button to get a CSV version of the meal plan.
 
-## 📜 License
-This project is licensed under the MIT License. See the LICENSE file for details.
+---
 
-## 🙏 Acknowledgements
-Data provided by Justwatch and TMDB.
+## 🖥️ Technology Stack
+
+- **Frontend**: Built using [Streamlit](https://streamlit.io/), a Python framework for building interactive web applications.
+- **API**: Powered by the [Edamam Recipe API](https://developer.edamam.com/edamam-recipe-api), which provides access to a wide variety of recipes and nutritional data.
+- **Backend**: Hosted on Streamlit Cloud for seamless and scalable deployment.
+
+---
+
+## 🧑‍💻 Development
+
+### Prerequisites
+
+Make sure you have the following installed on your local machine:
+
+- [Python 3.7+](https://www.python.org/downloads/)
+- [Streamlit](https://streamlit.io/)
+- [Edamam API Key](https://developer.edamam.com/)
+
+### Installation
+
+1. Clone this repository:
+
+   ```bash
+   git clone https://github.com/your-username/meal-planner-app.git
+
 Created with ❤️ by Marta Matias.
