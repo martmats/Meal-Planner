@@ -64,118 +64,44 @@ days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturda
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {day: [] for day in days_of_week}
 
-# Initialize the selected_days in session state
-if "selected_days" not in st.session_state:
-    st.session_state.selected_days = {}
+# Initialize a random page number for search to randomize results per session
+if "random_page" not in st.session_state:
+    st.session_state.random_page = random.randint(1, 10)  # Assuming the API has at least 10 pages of results
 
-# Function to clear cached results
-def clear_recipe_cache():
-    if "recipes" in st.session_state:
-        del st.session_state["recipes"]
-    if "next_page_url" in st.session_state:
-        del st.session_state["next_page_url"]
-
-# Function to fetch recipes with randomization in the query (adds unused random parameter)
-def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
-    if next_page:
-        url = next_page  # Use next page URL for pagination
-    else:
-        url = "https://api.edamam.com/api/recipes/v2"
-        # Add a random timestamp to make each query unique
-        random_seed = random.randint(1, 10000)
-        params = {
-            "type": "public",
-            "q": query,  # Keep the search query unchanged
-            "app_id": st.secrets["app_id"],  # Your App ID
-            "app_key": st.secrets["app_key"],  # Your App Key
-            "random": random_seed  # Unused parameter to randomize the request
-        }
-        
-        # Add optional filters
-        if diet_type != "None":
-            params["diet"] = diet_type.lower()
-        if calorie_limit > 0:
-            params["calories"] = f"lte {calorie_limit}"
-    
-    # Send API request
-    response = requests.get(url, params=params if not next_page else None)
-    
+# API request function with random page support
+def search_recipes(query):
+    # Use the random page number stored in session state
+    api_url = f"https://api.edamam.com/search?q={query}&page={st.session_state.random_page}&app_id=YOUR_APP_ID&app_key=YOUR_APP_KEY"
+    response = requests.get(api_url)
     if response.status_code == 200:
-        data = response.json()
-        recipes = data.get("hits", [])
-        
-        # Save the next page URL if available
-        next_page_url = data["_links"].get("next", {}).get("href", None)
-        st.session_state.next_page_url = next_page_url
-        
-        return recipes
+        return response.json()
     else:
-        st.error(f"API request failed with status code {response.status_code}")
-        st.write(response.text)
-        return []
+        st.error("Failed to fetch recipes.")
+        return None
 
-# Sidebar options for search filters and search query
-st.sidebar.title("Meal Plan Options")
-diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
-calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
+# Randomize the page number again on every search click to get fresh results
+if st.button("Search"):
+    # Re-randomize the page number
+    st.session_state.random_page = random.randint(1, 10)
 
-# Clear previous results if the search button is clicked
-if st.sidebar.button("Search Recipes"):
-    clear_recipe_cache()
-    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
-
-# Button to fetch the next page of recipes if available
-if "next_page_url" in st.session_state and st.session_state.next_page_url:
-    if st.sidebar.button("Load More Recipes"):
-        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
-        st.session_state.recipes.extend(new_recipes)
-
-# Helper function to add recipes to the meal plan
-def add_recipe_to_day(day, recipe):
-    st.session_state.meal_plan[day].append(recipe)
-
-# Show recipes if search has been performed
-if "recipes" in st.session_state:
-    recipes = st.session_state.recipes
-    if recipes:
-        st.write(f"## Showing {len(recipes)} recipes for **{query}**")
-        cols = st.columns(5)  # 5 columns in a row
-        for idx, recipe_data in enumerate(recipes):
-            recipe = recipe_data["recipe"]
-            recipe_key = f"recipe_{idx}"
-            if recipe_key not in st.session_state.selected_days:
-                st.session_state.selected_days[recipe_key] = "Monday"
-
-            with cols[idx % 5]:  # Switch to 5 columns
-                st.markdown(f"""
-                <div class="recipe-container">
-                    <img src="{recipe['image']}" alt="Recipe Image"/>
-                    <h4>{recipe['label']}</h4>
-                    <p>Calories: {recipe['calories']:.0f}</p>
-                    <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
-                </div>
-                """, unsafe_allow_html=True)
-
-                selected_day = st.selectbox(
-                    f"Choose day for {recipe['label']}",
-                    list(st.session_state.meal_plan.keys()), 
-                    key=f"day_{recipe_key}"
-                )
-                if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
-                    add_recipe_to_day(selected_day, recipe)
-
-# Display the meal plan in a calendar-like format with recipe URL
-st.write("## Your Meal Plan")
-cols = st.columns(7)
-for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
-    with cols[idx % 7]:
-        st.write(f"### {day}")
-        if meals:
-            for meal in meals:
-                st.write(f"- [{meal['label']}]({meal['url']}) ({meal['calories']:.0f} calories)")
+    # Perform the recipe search
+    user_query = st.text_input("Enter a meal keyword")
+    if user_query:
+        search_results = search_recipes(user_query)
+        
+        if search_results:
+            # Display results
+            st.write("## Recipe Results")
+            for recipe in search_results.get("hits", []):
+                recipe_data = recipe["recipe"]
+                st.markdown(f"### {recipe_data['label']}")
+                st.image(recipe_data['image'], use_column_width=True)
+                st.markdown(f"[View Recipe]({recipe_data['url']})")
+                st.write(f"Calories: {recipe_data['calories']:.0f}")
         else:
-            st.write("No meals added yet.")
+            st.write("No recipes found.")
+else:
+    st.write("Press the Search button to get recipes.")
 
 # Input for number of people before generating the shopping list
 people = st.sidebar.number_input("How many people?", min_value=1, value=1)
