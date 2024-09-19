@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import io
-import random
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -67,41 +66,45 @@ if "meal_plan" not in st.session_state:
 if "selected_days" not in st.session_state:
     st.session_state.selected_days = {}
 
-# Helper function to clear the cached results
+# Function to clear cached results
 def clear_recipe_cache():
     if "recipes" in st.session_state:
         del st.session_state["recipes"]
+    if "next_page_url" in st.session_state:
+        del st.session_state["next_page_url"]
 
-# Cache API response to avoid multiple calls for the same query
-@st.cache_data
-def fetch_recipes(query, diet_type, calorie_limit, page_size=10):
-    # API endpoint for Edamam Recipes API
-    BASE_URL = "https://api.edamam.com/api/recipes/v2"
-    
-    # Pagination: Randomly pick a starting point for results
-    from_value = random.randint(0, 90)  # Assuming a maximum of 100 results from Edamam
-    
-    # Build the query parameters for the API request
-    params = {
-        "type": "public",
-        "q": query,
-        "app_id": st.secrets["app_id"],  # Your App ID
-        "app_key": st.secrets["app_key"],  # Your App Key
-        "from": from_value,  # Pagination starting point
-        "to": from_value + page_size  # Number of results to fetch
-    }
-    
-    # Add optional filters
-    if diet_type != "None":
-        params["diet"] = diet_type.lower()
-    if calorie_limit > 0:
-        params["calories"] = f"lte {calorie_limit}"
+# Function to fetch recipes, handling pagination via _links.next.href
+def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
+    if next_page:
+        url = next_page  # Use next page URL for pagination
+    else:
+        url = "https://api.edamam.com/api/recipes/v2"
+        # Build the query parameters for the first page
+        params = {
+            "type": "public",
+            "q": query,
+            "app_id": st.secrets["app_id"],  # Your App ID
+            "app_key": st.secrets["app_key"],  # Your App Key
+        }
+        
+        # Add optional filters
+        if diet_type != "None":
+            params["diet"] = diet_type.lower()
+        if calorie_limit > 0:
+            params["calories"] = f"lte {calorie_limit}"
     
     # Send API request
-    response = requests.get(BASE_URL, params=params)
+    response = requests.get(url, params=params if not next_page else None)
     
     if response.status_code == 200:
-        return response.json().get("hits", [])
+        data = response.json()
+        recipes = data.get("hits", [])
+        
+        # Save the next page URL if available
+        next_page_url = data["_links"].get("next", {}).get("href", None)
+        st.session_state.next_page_url = next_page_url
+        
+        return recipes
     else:
         st.error(f"API request failed with status code {response.status_code}")
         st.write(response.text)
@@ -117,6 +120,12 @@ query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)",
 if st.sidebar.button("Search Recipes"):
     clear_recipe_cache()
     st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
+
+# Button to fetch the next page of recipes if available
+if "next_page_url" in st.session_state and st.session_state.next_page_url:
+    if st.sidebar.button("Load More Recipes"):
+        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
+        st.session_state.recipes.extend(new_recipes)
 
 # Helper function to add recipes to the meal plan
 def add_recipe_to_day(day, recipe):
