@@ -72,6 +72,10 @@ if "selected_days" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = 0  # Start with page 0
 
+# Initialize the total number of recipes in session state
+if "total_recipes" not in st.session_state:
+    st.session_state.total_recipes = 0  # Start with 0 recipes
+
 # Function to clear cached results
 def clear_recipe_cache():
     if "recipes" in st.session_state:
@@ -251,4 +255,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
