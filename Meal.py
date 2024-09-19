@@ -143,20 +143,13 @@ if "recipes" in st.session_state:
             if recipe_key not in st.session_state.selected_days:
                 st.session_state.selected_days[recipe_key] = "Monday"
 
-            # Safely handle missing '_links.self.href'
-            recipe_url = recipe.get('_links', {}).get('self', {}).get('href', '#')
-            if recipe_url != '#':  # Only show the button if the URL exists
-                view_recipe_button = f'<a href="{recipe_url}" target="_blank"><button>View Recipe</button></a>'
-            else:
-                view_recipe_button = ''
-
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
                 <div class="recipe-container">
                     <img src="{recipe['image']}" alt="Recipe Image"/>
                     <h4>{recipe['label']}</h4>
                     <p>Calories: {recipe['calories']:.0f}</p>
-                    {view_recipe_button}
+                    <a href="{recipe['_links']['self']['href']}" target="_blank"><button>View Recipe</button></a>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -176,9 +169,7 @@ for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
         st.write(f"### {day}")
         if meals:
             for meal in meals:
-                # Handle missing '_links.self.href' when displaying the meal plan
-                recipe_url = meal.get('_links', {}).get('self', {}).get('href', '#')
-                st.write(f"- [{meal['label']}]({recipe_url}) ({meal['calories']:.0f} calories)")
+                st.write(f"- [{meal['label']}]({meal['_links']['self']['href']}) ({meal['calories']:.0f} calories)")
         else:
             st.write("No meals added yet.")
 
@@ -210,7 +201,7 @@ def download_meal_plan():
     for day, meals in st.session_state.meal_plan.items():
         if meals:
             day_meals = pd.DataFrame(
-                [{"Recipe": meal['label'], "Calories": meal['calories'], "URL": meal.get('_links', {}).get('self', {}).get('href', '#')} for meal in meals]
+                [{"Recipe": meal['label'], "Calories": meal['calories'], "URL": meal['_links']['self']['href']} for meal in meals]
             )
             output.write(f"\n{day}\n")
             day_meals.to_csv(output, index=False)
@@ -227,5 +218,7 @@ if st.button("Download Meal Plan as CSV"):
         data=csv_data.getvalue(),  # Fix for correct data format
         file_name="meal_plan.csv",
         mime="text/csv"
+    )
+sv"
     )
 
