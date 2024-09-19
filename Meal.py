@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import io
+import random
+import time  # To use as a seed for randomness
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -73,16 +75,17 @@ def clear_recipe_cache():
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
 
-# Function to fetch recipes, handling pagination via _links.next.href
+# Function to fetch recipes, adding randomness to query to avoid repeated results
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
     if next_page:
         url = next_page  # Use next page URL for pagination
     else:
         url = "https://api.edamam.com/api/recipes/v2"
         # Build the query parameters for the first page
+        random_seed = random.randint(1, 1000)  # Add randomness to query
         params = {
             "type": "public",
-            "q": query,
+            "q": f"{query} {random_seed}",  # Add random seed to query
             "app_id": st.secrets["app_id"],  # Your App ID
             "app_key": st.secrets["app_key"],  # Your App Key
         }
@@ -219,3 +222,4 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
+
