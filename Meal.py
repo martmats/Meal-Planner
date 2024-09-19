@@ -60,6 +60,10 @@ st.markdown(
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {f"Day {i+1}": [] for i in range(7)}
 
+# Initialize the selected_days in session state
+if "selected_days" not in st.session_state:
+    st.session_state.selected_days = {}
+
 # Cache API response to avoid multiple calls for the same query
 @st.cache_data
 def fetch_recipes(query, diet_type, calorie_limit, page_size=10):
