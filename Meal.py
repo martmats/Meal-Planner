@@ -56,13 +56,21 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Days of the week for meal plan
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
 # Initialize the meal plan to persist data using session state
 if "meal_plan" not in st.session_state:
-    st.session_state.meal_plan = {f"Day {i+1}": [] for i in range(7)}
+    st.session_state.meal_plan = {day: [] for day in days_of_week}
 
 # Initialize the selected_days in session state
 if "selected_days" not in st.session_state:
     st.session_state.selected_days = {}
+
+# Helper function to clear the cached results
+def clear_recipe_cache():
+    if "recipes" in st.session_state:
+        del st.session_state["recipes"]
 
 # Cache API response to avoid multiple calls for the same query
 @st.cache_data
@@ -104,7 +112,10 @@ st.sidebar.title("Meal Plan Options")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
 query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
+
+# Clear previous results if the search button is clicked
 if st.sidebar.button("Search Recipes"):
+    clear_recipe_cache()
     st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 
 # Helper function to add recipes to the meal plan
@@ -121,7 +132,7 @@ if "recipes" in st.session_state:
             recipe = recipe_data["recipe"]
             recipe_key = f"recipe_{idx}"
             if recipe_key not in st.session_state.selected_days:
-                st.session_state.selected_days[recipe_key] = "Day 1"
+                st.session_state.selected_days[recipe_key] = "Monday"
 
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
