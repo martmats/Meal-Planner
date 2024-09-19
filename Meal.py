@@ -174,13 +174,8 @@ if "recipes" in st.session_state:
         cols = st.columns(5)  # 5 columns in a row
         for idx, recipe_data in enumerate(recipes):
             
-
-    try:
-        recipe = recipe_data["recipe"]
-    except KeyError:
-        st.error("Recipe data not found in the response. Please try again.")
-        st.stop()
-
+try:
+    recipe = recipe_data["recipe"]
 except KeyError:
     st.error("Recipe data not found in the response. Please try again.")
     st.stop()  # Prevent further execution if the recipe key is missing
@@ -265,4 +260,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
