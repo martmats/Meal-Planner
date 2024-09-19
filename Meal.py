@@ -64,14 +64,15 @@ days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturda
 if "meal_plan" not in st.session_state:
     st.session_state.meal_plan = {day: [] for day in days_of_week}
 
-# Initialize a random page number for search to randomize results per session
-if "random_page" not in st.session_state:
-    st.session_state.random_page = random.randint(1, 10)  # Assuming the API has at least 10 pages of results
+# Initialize the current search state, including page number and previous results
+if "search_results" not in st.session_state:
+    st.session_state.search_results = []
+if "current_page" not in st.session_state:
+    st.session_state.current_page = random.randint(1, 10)  # Start with a random page number
 
-# API request function with random page support
-def search_recipes(query):
-    # Use the random page number stored in session state
-    api_url = f"https://api.edamam.com/search?q={query}&page={st.session_state.random_page}&app_id=YOUR_APP_ID&app_key=YOUR_APP_KEY"
+# API request function with page support
+def search_recipes(query, page):
+    api_url = f"https://api.edamam.com/search?q={query}&page={page}&app_id=YOUR_APP_ID&app_key=YOUR_APP_KEY"
     response = requests.get(api_url)
     if response.status_code == 200:
         return response.json()
@@ -79,27 +80,45 @@ def search_recipes(query):
         st.error("Failed to fetch recipes.")
         return None
 
-# Randomize the page number again on every search click to get fresh results
-if st.button("Search"):
-    # Re-randomize the page number
-    st.session_state.random_page = random.randint(1, 10)
+# Randomize the page number again on every new search click to get fresh results
+user_query = st.text_input("Enter a meal keyword")
 
-    # Perform the recipe search
-    user_query = st.text_input("Enter a meal keyword")
+# When the user clicks search
+if st.button("Search"):
     if user_query:
-        search_results = search_recipes(user_query)
+        # Reset search results and page number on new search
+        st.session_state.search_results = []
+        st.session_state.current_page = random.randint(1, 10)
+        
+        # Fetch initial page results
+        search_results = search_recipes(user_query, st.session_state.current_page)
         
         if search_results:
-            # Display results
-            st.write("## Recipe Results")
-            for recipe in search_results.get("hits", []):
-                recipe_data = recipe["recipe"]
-                st.markdown(f"### {recipe_data['label']}")
-                st.image(recipe_data['image'], use_column_width=True)
-                st.markdown(f"[View Recipe]({recipe_data['url']})")
-                st.write(f"Calories: {recipe_data['calories']:.0f}")
+            st.session_state.search_results.extend(search_results.get("hits", []))
         else:
             st.write("No recipes found.")
+
+# Show the recipes after search
+if st.session_state.search_results:
+    st.write("## Recipe Results")
+    for recipe in st.session_state.search_results:
+        recipe_data = recipe["recipe"]
+        st.markdown(f"### {recipe_data['label']}")
+        st.image(recipe_data['image'], use_column_width=True)
+        st.markdown(f"[View Recipe]({recipe_data['url']})")
+        st.write(f"Calories: {recipe_data['calories']:.0f}")
+        
+    # "Load More Results" button
+    if st.button("Load More Results"):
+        # Increment page number for fetching more results
+        st.session_state.current_page += 1
+        additional_results = search_recipes(user_query, st.session_state.current_page)
+        
+        if additional_results:
+            st.session_state.search_results.extend(additional_results.get("hits", []))
+        else:
+            st.write("No more results.")
+
 else:
     st.write("Press the Search button to get recipes.")
 
