@@ -64,171 +64,87 @@ st.markdown(
         .recipe-container a {
             color: #007bff;
         }
-        .recipe-container select, .recipe-container button {
-            margin-top: 10px;
-        }
-        .recipe-container .recipe-actions {
-            margin-top: 15px;
-            padding-top: 10px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# API credentials from Streamlit Secrets (stored in Streamlit Cloud)
-EDAMAM_APP_ID = st.secrets["app_id"]
-EDAMAM_APP_KEY = st.secrets["app_key"]
-
-# Days of the week
-days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
-# Initialize the meal plan to persist data using session state
-if "meal_plan" not in st.session_state:
-    st.session_state.meal_plan = {day: [] for day in days_of_week}
-
-# Fetch API data with randomization of the start point (using 'from' parameter in API)
-def fetch_recipes(query, diet_type, calorie_limit):
-    # API endpoint for Edamam Recipes API
-    BASE_URL = "https://api.edamam.com/api/recipes/v2"
+# Fetch recipes from API function
+def get_recipes(query):
+    url = f"https://api.edamam.com/search?q={query}&app_id=YOUR_APP_ID&app_key=YOUR_APP_KEY&from=0&to=100"
+    response = requests.get(url)
+    data = response.json()
     
-    # Generate a random starting point (to get different sets of recipes)
-    random_start = random.randint(0, 100)  # You can adjust the range to be larger if needed
-    
-    # Build the query parameters for the API request
-    params = {
-        "type": "public",
-        "q": query,
-        "app_id": EDAMAM_APP_ID,
-        "app_key": EDAMAM_APP_KEY,
-        "from": random_start,  # Start from a random point
-        "to": random_start + 10  # Fetch 10 recipes
-    }
-    
-    # Add optional filters
-    if diet_type != "None":
-        params["diet"] = diet_type.lower()
-    if calorie_limit > 0:
-        params["calories"] = f"lte {calorie_limit}"
-    
-    # Send API request
-    response = requests.get(BASE_URL, params=params)
-    
-    if response.status_code == 200:
-        results = response.json().get("hits", [])
-        return results
+    if 'hits' in data:
+        recipes = data['hits']
+        return [recipe['recipe'] for recipe in recipes]
     else:
-        st.error(f"API request failed with status code {response.status_code}")
-        st.write(response.text)
         return []
 
-# Sidebar options for search filters and search query (Search input first)
-st.sidebar.title("Meal Plan Options")
-query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
-diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
-calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-if st.sidebar.button("Search Recipes"):
-    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
+# Function to display a random set of recipes
+def display_random_recipes(recipes, num_to_display=5):
+    random.shuffle(recipes)  # Shuffle the recipes to get random ones each time
+    
+    # Keep track of displayed recipes to avoid repeats
+    if "displayed_recipes" not in st.session_state:
+        st.session_state.displayed_recipes = []
 
-# Track selected day for each recipe in session state
-if "selected_days" not in st.session_state:
-    st.session_state.selected_days = {}
+    # Exclude previously displayed recipes
+    new_recipes = [recipe for recipe in recipes if recipe['label'] not in st.session_state.displayed_recipes]
 
-# Helper function to add recipes to the meal plan
-def add_recipe_to_day(day, recipe):
-    st.session_state.meal_plan[day].append(recipe)
+    # Select the recipes to display and update the session state to avoid repeats
+    for recipe in new_recipes[:num_to_display]:
+        st.markdown(f"""
+            <div class="recipe-container">
+                <img src="{recipe['image']}" alt="{recipe['label']}">
+                <h3>{recipe['label']}</h3>
+                <p>Calories: {recipe['calories']:.0f}</p>
+                <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Add the recipe label to the session state to avoid showing it again
+        st.session_state.displayed_recipes.append(recipe['label'])
 
-# Show recipes if search has been performed
-if "recipes" in st.session_state:
-    recipes = st.session_state.recipes
-    if recipes:
-        st.write(f"## Showing {len(recipes)} recipes for **{query}**")
-        cols = st.columns(5)  # 5 columns in a row
-        for idx, recipe_data in enumerate(recipes):
-            recipe = recipe_data["recipe"]
-            recipe_key = f"recipe_{idx}"
-            if recipe_key not in st.session_state.selected_days:
-                st.session_state.selected_days[recipe_key] = "Monday"  # Default to Monday if not chosen
+# Sidebar input for search query
+search_term = st.sidebar.text_input("Search for recipes (e.g., chicken, beef, vegan)", "")
 
-            with cols[idx % 5]:  # Switch to 5 columns
-                st.markdown(f"""
-                <div class="recipe-container">
-                    <img src="{recipe['image']}" alt="Recipe Image"/>
-                    <h4>{recipe['label']}</h4>
-                    <p>Calories: {recipe['calories']:.0f}</p>
-                    <a href="{recipe['url']}" target="_blank">View Recipe</a>
-                    <div class="recipe-actions">
-                        <label>Choose day for {recipe['label']}:</label>
-                """, unsafe_allow_html=True)
+# Buttons to navigate to sections
+if st.sidebar.button("Go to Meal Planner"):
+    st.session_state.scroll_to_meal_plan = True
 
-                selected_day = st.selectbox(
-                    f"Choose day for {recipe['label']}",
-                    days_of_week,  # Days of the week
-                    key=f"day_{recipe_key}"
-                )
-                if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
-                    add_recipe_to_day(selected_day, recipe)
+if st.sidebar.button("Go to Shopping List"):
+    st.session_state.scroll_to_shopping_list = True
 
-                st.markdown("</div></div>", unsafe_allow_html=True)
-
-# Display the meal plan in a calendar-like format
-st.write("## Your Meal Plan")
-cols = st.columns(7)
-for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
-    with cols[idx % 7]:
-        st.write(f"### {day}")
-        if meals:
-            for meal in meals:
-                st.write(f"- [{meal['label']}]({meal['url']}) ({meal['calories']:.0f} calories)")
+# Search button to fetch and display recipes
+if st.sidebar.button("Search"):
+    if search_term:
+        recipes = get_recipes(search_term)
+        if recipes:
+            display_random_recipes(recipes)  # Display random recipes
         else:
-            st.write("No meals added yet.")
+            st.write(f"No recipes found for {search_term}.")
+    else:
+        st.write("Please enter a search term.")
 
-# Input for number of people before generating the shopping list
-people = st.sidebar.number_input("How many people?", min_value=1, value=1)
+# Placeholder for Meal Planner
+meal_plan_placeholder = st.empty()
+meal_plan_placeholder.markdown("## Meal Planner")
+# Code for displaying meal planner would go here
 
-# Generate shopping list button
-if st.sidebar.button("Generate Shopping List"):
-    shopping_list = {}
-    for meals in st.session_state.meal_plan.values():
-        for recipe in meals:
-            for ingredient in recipe["ingredients"]:
-                food_item = ingredient["food"]
-                quantity = ingredient["quantity"] * people  # Adjusting for number of people
-                unit = ingredient.get("measure", "units")  # Adding units like grams, kilograms, etc.
-                if food_item in shopping_list:
-                    shopping_list[food_item]["quantity"] += quantity
-                else:
-                    shopping_list[food_item] = {"quantity": quantity, "unit": unit}
+# Placeholder for Shopping List
+shopping_list_placeholder = st.empty()
+shopping_list_placeholder.markdown("## Shopping List")
+# Code for generating the shopping list would go here
 
-    # Display the shopping list
+# Scroll to the Meal Planner if the button was clicked
+if "scroll_to_meal_plan" in st.session_state and st.session_state.scroll_to_meal_plan:
+    meal_plan_placeholder.empty()
+    st.write("## Meal Planner")
+    st.session_state.scroll_to_meal_plan = False
+
+# Scroll to the Shopping List if the button was clicked
+if "scroll_to_shopping_list" in st.session_state and st.session_state.scroll_to_shopping_list:
+    shopping_list_placeholder.empty()
     st.write("## Shopping List")
-    for food, details in shopping_list.items():
-        st.write(f"{food}: {details['quantity']} {details['unit']}")
-
-# Function to download meal plans as CSV (fixed to output valid text format)
-def download_meal_plan():
-    output = io.StringIO()  # Use in-memory string buffer for CSV format
-    output.write("Day,Recipe,URL\n")  # Correct header for CSV
-    
-    # Iterate through the meal plan and write to CSV
-    for day, meals in st.session_state.meal_plan.items():
-        for meal in meals:
-            output.write(f"{day},{meal['label']},{meal['url']}\n")
-    
-    # Ensure the buffer is ready for download
-    output.seek(0)
-    return output
-
-# Button to download meal plan as a CSV file
-if st.button("Download Meal Plan as CSV"):
-    csv_data = download_meal_plan()
-    st.download_button(
-        label="Download CSV File",
-        data=csv_data.getvalue(),  # Getting the string value from StringIO
-        file_name="meal_plan.csv",
-        mime="text/csv"
-    )
+    st.session_state.scroll_to_shopping_list = False
