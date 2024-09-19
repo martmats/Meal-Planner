@@ -67,46 +67,48 @@ if "meal_plan" not in st.session_state:
 if "selected_days" not in st.session_state:
     st.session_state.selected_days = {}
 
+# Initialize the offset to use with the 'from' and 'to' parameters
+if "offset" not in st.session_state:
+    st.session_state.offset = 0
+
 # Function to clear cached results
 def clear_recipe_cache():
     if "recipes" in st.session_state:
         del st.session_state["recipes"]
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
+    st.session_state.offset = 0  # Reset the offset when a new search is made
 
 # Function to fetch recipes with randomization in the query (adds unused random parameter)
-def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
-    if next_page:
-        url = next_page  # Use next page URL for pagination
-    else:
-        url = "https://api.edamam.com/api/recipes/v2"
-        # Add a random timestamp to make each query unique
-        random_seed = random.randint(1, 10000)
-        params = {
-            "type": "public",
-            "q": query,  # Keep the search query unchanged
-            "app_id": st.secrets["app_id"],  # Your App ID
-            "app_key": st.secrets["app_key"],  # Your App Key
-            "random": random_seed  # Unused parameter to randomize the request
-        }
-        
-        # Add optional filters
-        if diet_type != "None":
-            params["diet"] = diet_type.lower()
-        if calorie_limit > 0:
-            params["calories"] = f"lte {calorie_limit}"
+def fetch_recipes(query, diet_type, calorie_limit, from_index=0, to_index=10):
+    url = "https://api.edamam.com/api/recipes/v2"
     
+    # Add a random seed to make each query unique
+    random_seed = random.randint(1, 10000)
+    params = {
+        "type": "public",
+        "q": query,
+        "app_id": st.secrets["app_id"],
+        "app_key": st.secrets["app_key"],
+        "random": random_seed,  # Unused parameter to randomize the request
+        "from": from_index,
+        "to": to_index
+    }
+    
+    # Add optional filters
+    if diet_type != "None":
+        params["diet"] = diet_type.lower()
+    if calorie_limit > 0:
+        params["calories"] = f"lte {calorie_limit}"
+
     # Send API request
-    response = requests.get(url, params=params if not next_page else None)
+    response = requests.get(url, params=params)
     
     if response.status_code == 200:
         data = response.json()
         recipes = data.get("hits", [])
         
         # Save the next page URL if available
-        next_page_url = data["_links"].get("next", {}).get("href", None)
-        st.session_state.next_page_url = next_page_url
-        
         return recipes
     else:
         st.error(f"API request failed with status code {response.status_code}")
@@ -114,21 +116,26 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
         return []
 
 # Sidebar options for search filters and search query
-st.sidebar.title("Meal Plan Options")
+st.sidebar.title("Meal Plan Generator")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
 calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
+query = st.text_input("Search here", "")
 
 # Clear previous results if the search button is clicked
-if st.sidebar.button("Search Recipes"):
-    clear_recipe_cache()
-    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
+if st.button("Search"):
+    if query:
+        clear_recipe_cache()
+        # Fetch the first batch of recipes, and increase the offset for future searches
+        st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.offset, st.session_state.offset + 10)
+        st.session_state.offset += 10
 
 # Button to fetch the next page of recipes if available
-if "next_page_url" in st.session_state and st.session_state.next_page_url:
-    if st.sidebar.button("Load More Recipes"):
-        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
+if "recipes" in st.session_state and st.session_state.recipes:
+    if st.button("Load More Recipes"):
+        # Fetch the next batch of recipes and increase the offset
+        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.offset, st.session_state.offset + 10)
         st.session_state.recipes.extend(new_recipes)
+        st.session_state.offset += 10
 
 # Helper function to add recipes to the meal plan
 def add_recipe_to_day(day, recipe):
@@ -222,5 +229,6 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
+
 
 
