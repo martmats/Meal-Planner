@@ -97,10 +97,10 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
         data = response.json()
         return data
 
-# Fetch new results when the app starts
+# Ensure recipes are only fetched once on app start
 if "recipes" not in st.session_state:
+    # Fetch new recipes when the app starts for the first time
     st.session_state.recipes = fetch_recipes("popular", None, None)
-    st.experimental_rerun()  # Trigger a rerun to load new results on startup
 
 # Search function triggered by user
 def search_recipes():
@@ -110,7 +110,6 @@ def search_recipes():
 
     if st.button("Search"):
         st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
-        st.experimental_rerun()
 
 # Display the recipes
 def display_recipes(recipes):
