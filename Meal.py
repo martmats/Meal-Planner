@@ -1,9 +1,8 @@
 import streamlit as st
 import requests
 import pandas as pd
-import io
 import random
-import time  # For randomization
+import time
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -97,19 +96,27 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
         data = response.json()
         return data
 
-# Ensure recipes are only fetched once on app start
+# Ensure recipes are fetched once at app startup
 if "recipes" not in st.session_state:
     # Fetch new recipes when the app starts for the first time
     st.session_state.recipes = fetch_recipes("popular", None, None)
 
 # Search function triggered by user
 def search_recipes():
-    query = st.text_input("Search for recipes", "")
-    diet_type = st.selectbox("Choose a diet type", ["None", "Balanced", "Low-Carb", "High-Protein"])
-    calorie_limit = st.slider("Set calorie limit", 100, 2000, 500)
+    query = st.sidebar.text_input("Search for recipes", "")
+    diet_type = st.sidebar.selectbox("Choose a diet type", ["None", "Balanced", "Low-Carb", "High-Protein"])
+    calorie_limit = st.sidebar.slider("Set calorie limit", 100, 2000, 500)
 
-    if st.button("Search"):
+    if st.sidebar.button("Search"):
+        # Add random seed to fetch different results each time the search button is clicked
         st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
+
+    # "Load More" button logic for pagination
+    if "next_page_url" in st.session_state and st.session_state.next_page_url:
+        if st.sidebar.button("Load More"):
+            more_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
+            st.session_state.recipes["hits"].extend(more_recipes["hits"])
+            st.session_state.next_page_url = more_recipes.get("_links", {}).get("next", {}).get("href")
 
 # Display the recipes
 def display_recipes(recipes):
@@ -164,3 +171,4 @@ search_recipes()
 if "recipes" in st.session_state:
     display_recipes(st.session_state.recipes)
 display_meal_plan()
+
