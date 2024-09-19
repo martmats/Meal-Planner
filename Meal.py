@@ -1,4 +1,8 @@
-import streamlit as st
+
+
+
+
+
 import requests
 import pandas as pd
 import io
@@ -90,27 +94,24 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
             "app_key": st.secrets["app_key"],  # Your App Key
             "random": random_seed  # Unused parameter to randomize the request
         }
-
+        
         # Add optional filters
         if diet_type != "None":
             params["diet"] = diet_type.lower()
         if calorie_limit > 0:
             params["calories"] = f"lte {calorie_limit}"
-
+    
     # Send API request
     response = requests.get(url, params=params if not next_page else None)
-
+    
     if response.status_code == 200:
         data = response.json()
         recipes = data.get("hits", [])
-
-        # Randomize recipe order
-        random.shuffle(recipes)
-
+        
         # Save the next page URL if available
         next_page_url = data["_links"].get("next", {}).get("href", None)
         st.session_state.next_page_url = next_page_url
-
+        
         return recipes
     else:
         st.error(f"API request failed with status code {response.status_code}")
@@ -143,7 +144,6 @@ if "recipes" in st.session_state:
     recipes = st.session_state.recipes
     if recipes:
         st.write(f"## Showing {len(recipes)} recipes for **{query}**")
-        random.shuffle(recipes)  # Randomize recipe order again before display
         cols = st.columns(5)  # 5 columns in a row
         for idx, recipe_data in enumerate(recipes):
             recipe = recipe_data["recipe"]
@@ -153,17 +153,17 @@ if "recipes" in st.session_state:
 
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
-                    <div class="recipe-container">
-                        <img src="{recipe['image']}" alt="Recipe Image"/>
-                        <h4>{recipe['label']}</h4>
-                        <p>Calories: {recipe['calories']:.0f}</p>
-                        <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
-                    </div>
-                    """, unsafe_allow_html=True)
+                <div class="recipe-container">
+                    <img src="{recipe['image']}" alt="Recipe Image"/>
+                    <h4>{recipe['label']}</h4>
+                    <p>Calories: {recipe['calories']:.0f}</p>
+                    <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
+                </div>
+                """, unsafe_allow_html=True)
 
                 selected_day = st.selectbox(
                     f"Choose day for {recipe['label']}",
-                    list(st.session_state.meal_plan.keys()),
+                    list(st.session_state.meal_plan.keys()), 
                     key=f"day_{recipe_key}"
                 )
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
@@ -227,4 +227,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
