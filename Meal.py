@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import random
-import time
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -74,33 +73,33 @@ def clear_recipe_cache():
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
 
-# Function to fetch recipes with randomization in the query (adds unused random parameter)
+# Function to fetch recipes with randomization in the query (adds a timestamp to randomize)
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
     # Base URL for the Edamam API
     url = "https://api.edamam.com/api/recipes/v2"
-    
+
     # If we're fetching the next page of results, use the next_page URL
     if next_page:
         url = next_page
         params = None  # No need for params when fetching paginated results
     else:
-        # Randomize the search with a random seed to get different results each time
-        random_seed = random.randint(1, 10000)
+        # Add timestamp to the search to ensure random results on each search
+        random_seed = str(int(random.random() * 100000))
         params = {
             "type": "public",
             "q": query,
             "app_id": st.secrets["app_id"],  # Your Edamam App ID
             "app_key": st.secrets["app_key"],  # Your Edamam App Key
-            "random": random_seed,
+            "random": random_seed,  # Using random seed to randomize results
             "diet": diet_type,
             "calories": calorie_limit,
         }
 
-    # Make the request to Edamam API
+    # Make the request to the Edamam API
     response = requests.get(url, params=params)
     data = response.json()
 
-    # Store the "next" URL for pagination if it's available
+    # Store the "next" URL for pagination if available
     st.session_state.next_page_url = data.get("_links", {}).get("next", {}).get("href", None)
 
     return data
@@ -119,7 +118,7 @@ def search_recipes():
 
     # Search button to trigger new search results
     if st.sidebar.button("Search"):
-        # Add random seed to fetch different results each time the search button is clicked
+        # Fetch new recipes with randomization
         st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 
     # "Load More" button for paginated results
