@@ -75,48 +75,58 @@ def clear_recipe_cache():
 
 # Function to fetch recipes with randomization in the query (adds unused random parameter)
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
+    # Base URL for the Edamam API
+    url = "https://api.edamam.com/api/recipes/v2"
+    
+    # If we're fetching the next page of results, use the next_page URL
     if next_page:
-        url = next_page  # Use next page URL for pagination
+        url = next_page
+        params = None  # No need for params when fetching paginated results
     else:
-        url = "https://api.edamam.com/api/recipes/v2"
-        # Add a random timestamp to make each query unique
+        # Randomize the search with a random seed to get different results each time
         random_seed = random.randint(1, 10000)
         params = {
             "type": "public",
-            "q": query,  # Keep the search query unchanged
-            "app_id": st.secrets["app_id"],  # Your App ID
-            "app_key": st.secrets["app_key"],  # Your App Key
-            "random": random_seed,  # Unused parameter to randomize the request
+            "q": query,
+            "app_id": st.secrets["app_id"],  # Your Edamam App ID
+            "app_key": st.secrets["app_key"],  # Your Edamam App Key
+            "random": random_seed,
             "diet": diet_type,
             "calories": calorie_limit,
         }
-        # Fetch the data
-        response = requests.get(url, params=params)
-        data = response.json()
-        st.session_state.next_page_url = data.get("_links", {}).get("next", {}).get("href")
-        return data
+
+    # Make the request to Edamam API
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    # Store the "next" URL for pagination if it's available
+    st.session_state.next_page_url = data.get("_links", {}).get("next", {}).get("href", None)
+
+    return data
 
 # Ensure recipes are fetched once at app startup
 if "recipes" not in st.session_state:
-    # Fetch new recipes when the app starts for the first time
+    # Fetch new recipes when the app starts for the first time with a default query
     st.session_state.recipes = fetch_recipes("popular", None, None)
 
 # Search function triggered by user
 def search_recipes():
+    # Sidebar inputs for search, diet type, and calorie limit
     query = st.sidebar.text_input("Search for recipes", "chicken")  # Default query for initialization
     diet_type = st.sidebar.selectbox("Choose a diet type", ["None", "Balanced", "Low-Carb", "High-Protein"])
     calorie_limit = st.sidebar.number_input("Set calorie limit (max)", value=500, min_value=100, max_value=2000, step=50)
 
+    # Search button to trigger new search results
     if st.sidebar.button("Search"):
         # Add random seed to fetch different results each time the search button is clicked
         st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
 
-    # "Load More" button logic for pagination
+    # "Load More" button for paginated results
     if "next_page_url" in st.session_state and st.session_state.next_page_url:
         if st.sidebar.button("Load More"):
+            # Fetch the next page of results
             more_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
-            st.session_state.recipes["hits"].extend(more_recipes["hits"])
-            st.session_state.next_page_url = more_recipes.get("_links", {}).get("next", {}).get("href")
+            st.session_state.recipes["hits"].extend(more_recipes["hits"])  # Append new results to existing ones
 
 # Display the recipes in recipe boxes
 def display_recipes(recipes):
