@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import io
-import random
-import time  # For randomization
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -75,30 +73,28 @@ def clear_recipe_cache():
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
 
-# Function to fetch recipes with randomization in the query (adds unused random parameter)
+# Function to fetch recipes while adhering to API v2 rules
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
     if next_page:
-        url = next_page  # Use next page URL for pagination
+        url = next_page  # Use the pre-constructed URL for the next page
+        params = None
     else:
         url = "https://api.edamam.com/api/recipes/v2"
-        # Add a random timestamp to make each query unique
-        random_seed = random.randint(1, 10000)
+        # Build the query parameters for the first page
         params = {
-            "type": "public",
-            "q": query,  # Keep the search query unchanged
+            "type": "public",  # Mandatory parameter
+            "q": query,  # Search query
             "app_id": st.secrets["app_id"],  # Your App ID
             "app_key": st.secrets["app_key"],  # Your App Key
-            "random": random_seed  # Unused parameter to randomize the request
         }
-        
         # Add optional filters
         if diet_type != "None":
             params["diet"] = diet_type.lower()
         if calorie_limit > 0:
             params["calories"] = f"lte {calorie_limit}"
-    
-    # Send API request
-    response = requests.get(url, params=params if not next_page else None)
+
+    # Send the API request
+    response = requests.get(url, params=params)
     
     if response.status_code == 200:
         data = response.json()
@@ -153,7 +149,7 @@ if "recipes" in st.session_state:
                     <img src="{recipe['image']}" alt="Recipe Image"/>
                     <h4>{recipe['label']}</h4>
                     <p>Calories: {recipe['calories']:.0f}</p>
-                    <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
+                    <a href="{recipe['_links']['self']['href']}" target="_blank"><button>View Recipe</button></a>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -173,7 +169,7 @@ for idx, (day, meals) in enumerate(st.session_state.meal_plan.items()):
         st.write(f"### {day}")
         if meals:
             for meal in meals:
-                st.write(f"- [{meal['label']}]({meal['url']}) ({meal['calories']:.0f} calories)")
+                st.write(f"- [{meal['label']}]({meal['_links']['self']['href']}) ({meal['calories']:.0f} calories)")
         else:
             st.write("No meals added yet.")
 
@@ -205,7 +201,7 @@ def download_meal_plan():
     for day, meals in st.session_state.meal_plan.items():
         if meals:
             day_meals = pd.DataFrame(
-                [{"Recipe": meal['label'], "Calories": meal['calories'], "URL": meal['url']} for meal in meals]
+                [{"Recipe": meal['label'], "Calories": meal['calories'], "URL": meal['_links']['self']['href']} for meal in meals]
             )
             output.write(f"\n{day}\n")
             day_meals.to_csv(output, index=False)
