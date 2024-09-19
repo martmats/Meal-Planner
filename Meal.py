@@ -82,6 +82,14 @@ st.markdown(
 # Sidebar title and icon
 st.sidebar.markdown('<h1 class="menu-title">🍽️ Menu Planner</h1>', unsafe_allow_html=True)
 
+# Initialize the meal plan to persist data using session state
+if "meal_plan" not in st.session_state:
+    st.session_state.meal_plan = {day: [] for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}
+
+# Initialize the selected_days in session state
+if "selected_days" not in st.session_state:
+    st.session_state.selected_days = {}
+
 # Search input field at the top of the sidebar
 query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
 diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
@@ -207,4 +215,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
