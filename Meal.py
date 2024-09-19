@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import io
 import random
+import time  # For randomization
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -74,18 +75,20 @@ def clear_recipe_cache():
     if "next_page_url" in st.session_state:
         del st.session_state["next_page_url"]
 
-# Function to fetch recipes, adding randomness to fetch different results
+# Function to fetch recipes with randomization in the query (adds unused random parameter)
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
     if next_page:
         url = next_page  # Use next page URL for pagination
     else:
         url = "https://api.edamam.com/api/recipes/v2"
-        # Build the query parameters for the first page
+        # Add a random timestamp to make each query unique
+        random_seed = random.randint(1, 10000)
         params = {
             "type": "public",
-            "q": query,  # Keep the query unchanged
+            "q": query,  # Keep the search query unchanged
             "app_id": st.secrets["app_id"],  # Your App ID
             "app_key": st.secrets["app_key"],  # Your App Key
+            "random": random_seed  # Unused parameter to randomize the request
         }
         
         # Add optional filters
@@ -220,4 +223,3 @@ if st.button("Download Meal Plan as CSV"):
         file_name="meal_plan.csv",
         mime="text/csv"
     )
-
