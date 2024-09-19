@@ -173,7 +173,13 @@ if "recipes" in st.session_state:
         st.write(f"## Showing {len(recipes)} recipes for **{query}**")
         cols = st.columns(5)  # 5 columns in a row
         for idx, recipe_data in enumerate(recipes):
-            recipe = recipe_data["recipe"]
+            
+try:
+    recipe = recipe_data["recipe"]
+except KeyError:
+    st.error("Recipe data not found in the response. Please try again.")
+    st.stop()  # Prevent further execution if the recipe key is missing
+
             recipe_key = f"recipe_{idx}"
             if recipe_key not in st.session_state.selected_days:
                 st.session_state.selected_days[recipe_key] = "Monday"
