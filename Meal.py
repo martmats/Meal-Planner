@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import random
+import time
 
 # Set page configuration
 st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
@@ -184,4 +185,5 @@ search_recipes()
 if "recipes" in st.session_state:
     display_recipes(st.session_state.recipes)
 display_meal_plan()
+
 
