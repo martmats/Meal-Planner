@@ -90,24 +90,27 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
             "app_key": st.secrets["app_key"],  # Your App Key
             "random": random_seed  # Unused parameter to randomize the request
         }
-        
+
         # Add optional filters
         if diet_type != "None":
             params["diet"] = diet_type.lower()
         if calorie_limit > 0:
             params["calories"] = f"lte {calorie_limit}"
-    
+
     # Send API request
     response = requests.get(url, params=params if not next_page else None)
-    
+
     if response.status_code == 200:
         data = response.json()
         recipes = data.get("hits", [])
-        
+
+        # Randomize recipe order
+        random.shuffle(recipes)
+
         # Save the next page URL if available
         next_page_url = data["_links"].get("next", {}).get("href", None)
         st.session_state.next_page_url = next_page_url
-        
+
         return recipes
     else:
         st.error(f"API request failed with status code {response.status_code}")
@@ -140,6 +143,7 @@ if "recipes" in st.session_state:
     recipes = st.session_state.recipes
     if recipes:
         st.write(f"## Showing {len(recipes)} recipes for **{query}**")
+        random.shuffle(recipes)  # Randomize recipe order again before display
         cols = st.columns(5)  # 5 columns in a row
         for idx, recipe_data in enumerate(recipes):
             recipe = recipe_data["recipe"]
@@ -149,17 +153,17 @@ if "recipes" in st.session_state:
 
             with cols[idx % 5]:  # Switch to 5 columns
                 st.markdown(f"""
-                <div class="recipe-container">
-                    <img src="{recipe['image']}" alt="Recipe Image"/>
-                    <h4>{recipe['label']}</h4>
-                    <p>Calories: {recipe['calories']:.0f}</p>
-                    <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
-                </div>
-                """, unsafe_allow_html=True)
+                    <div class="recipe-container">
+                        <img src="{recipe['image']}" alt="Recipe Image"/>
+                        <h4>{recipe['label']}</h4>
+                        <p>Calories: {recipe['calories']:.0f}</p>
+                        <a href="{recipe['url']}" target="_blank"><button>View Recipe</button></a>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 selected_day = st.selectbox(
                     f"Choose day for {recipe['label']}",
-                    list(st.session_state.meal_plan.keys()), 
+                    list(st.session_state.meal_plan.keys()),
                     key=f"day_{recipe_key}"
                 )
                 if st.button(f"Add {recipe['label']} to {selected_day}", key=f"btn_{idx}"):
@@ -184,42 +188,3 @@ people = st.sidebar.number_input("How many people?", min_value=1, value=1)
 if st.sidebar.button("Generate Shopping List"):
     shopping_list = {}
     for meals in st.session_state.meal_plan.values():
-        for recipe in meals:
-            for ingredient in recipe["ingredients"]:
-                food_item = ingredient["food"]
-                quantity = ingredient["quantity"] * people  # Adjusting for number of people
-                unit = ingredient.get("measure", "units")  # Adding units like grams, kilograms, etc.
-                if food_item in shopping_list:
-                    shopping_list[food_item]["quantity"] += quantity
-                else:
-                    shopping_list[food_item] = {"quantity": quantity, "unit": unit}
-
-    # Display the shopping list
-    st.write("## Shopping List")
-    for food, details in shopping_list.items():
-        st.write(f"{food}: {details['quantity']} {details['unit']}")
-
-# Function to download meal plans as CSV
-def download_meal_plan():
-    output = io.StringIO()  # Use in-memory string buffer for CSV format
-    for day, meals in st.session_state.meal_plan.items():
-        if meals:
-            day_meals = pd.DataFrame(
-                [{"Recipe": meal['label'], "Calories": meal['calories'], "URL": meal['url']} for meal in meals]
-            )
-            output.write(f"\n{day}\n")
-            day_meals.to_csv(output, index=False)
-
-    # Ensure the buffer is ready for download
-    output.seek(0)
-    return output
-
-# Button to download meal plan as a CSV file
-if st.button("Download Meal Plan as CSV"):
-    csv_data = download_meal_plan()
-    st.download_button(
-        label="Download CSV File",
-        data=csv_data.getvalue(),  # Fix for correct data format
-        file_name="meal_plan.csv",
-        mime="text/csv"
-    )
