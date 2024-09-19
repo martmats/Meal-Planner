@@ -94,6 +94,7 @@ def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
         # Fetch the data
         response = requests.get(url, params=params)
         data = response.json()
+        st.session_state.next_page_url = data.get("_links", {}).get("next", {}).get("href")
         return data
 
 # Ensure recipes are fetched once at app startup
@@ -171,4 +172,3 @@ search_recipes()
 if "recipes" in st.session_state:
     display_recipes(st.session_state.recipes)
 display_meal_plan()
-
