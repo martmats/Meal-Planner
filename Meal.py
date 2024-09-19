@@ -1,7 +1,12 @@
-# Set page configuration
-st.set_page_config(page_title="Menu Planner", page_icon="🍽️", layout="wide")
+import streamlit as st
+import requests
+import pandas as pd
+import io
 
-# CSS Styling: Sidebar Color, Recipe Card Styling with Border, Hover effect, and Button styles
+# Set page configuration
+st.set_page_config(page_title="Meal Plan Generator", page_icon="🍽️", layout="wide")
+
+# CSS Styling: Sidebar Color, Recipe Card Styling with Border and Hover effect
 st.markdown(
     """
     <style>
@@ -12,13 +17,17 @@ st.markdown(
         section[data-testid="stSidebar"] > div:first-child {
             background-color: #93B6F2;
         }
-        /* Sidebar title styling */
-        h1 {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
+        /* Style the buttons to be blue */
+        .stButton > button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
         }
-        /* Styling for the recipe cards */
+        /* Style the recipe cards with a border, shadow, and padding */
         .recipe-container {
             border: 1px solid #d4d4d4;
             padding: 20px;
@@ -26,7 +35,7 @@ st.markdown(
             background-color: white;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
-            margin-bottom: 40px;  /* Increased margin to give more space between boxes */
+            margin-bottom: 20px;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -41,72 +50,21 @@ st.markdown(
             height: 200px;
             object-fit: cover;
         }
-        /* Improved button style */
-        .recipe-container button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
-            transition: background-color 0.3s ease;
-        }
-        .recipe-container button:hover {
-            background-color: #0056b3;
-        }
-        /* General layout adjustments */
-        .stButton button {
-            font-size: 16px;
-            padding: 10px 20px;
-        }
-        .sidebar-button {
-            margin-top: 20px;
-        }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Add app title with an icon to the sidebar
-st.sidebar.title("🍽️ Menu Planner")
+# Days of the week for meal plan
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-# Buttons to navigate to sections
-menu_planner_section = st.sidebar.button("Go to Menu Planner")
-shopping_list_section = st.sidebar.button("Go to Shopping List")
+# Initialize the meal plan to persist data using session state
+if "meal_plan" not in st.session_state:
+    st.session_state.meal_plan = {day: [] for day in days_of_week}
 
-# Add search input at the beginning of the sidebar
-query = st.sidebar.text_input("Search for recipes (e.g., chicken, vegan pasta)", "dinner")
-diet_type = st.sidebar.selectbox("Select Diet", ["Balanced", "Low-Carb", "High-Protein", "None"], index=0)
-calorie_limit = st.sidebar.number_input("Max Calories (Optional)", min_value=0, step=50)
-
-# Sidebar search button
-if st.sidebar.button("Search Recipes"):
-    clear_recipe_cache()
-    st.session_state.recipes = fetch_recipes(query, diet_type, calorie_limit)
-
-# Navigation to specific sections
-if menu_planner_section:
-    st.write("## Your Menu Planner")
-    st.write("Here you'll find the meal plan for the week.")
-
-if shopping_list_section:
-    st.write("## Your Shopping List")
-    st.write("This is where the shopping list will be displayed.")
-
-# Button to fetch the next page of recipes if available
-if "next_page_url" in st.session_state and st.session_state.next_page_url:
-    if st.sidebar.button("Load More Recipes"):
-        new_recipes = fetch_recipes(query, diet_type, calorie_limit, st.session_state.next_page_url)
-        st.session_state.recipes.extend(new_recipes)
-# Function to clear cached results
-def clear_recipe_cache():
-    if "recipes" in st.session_state:
-        del st.session_state["recipes"]
-    if "next_page_url" in st.session_state:
-        del st.session_state["next_page_url"]
-
+# Initialize the selected_days in session state
+if "selected_days" not in st.session_state:
+    st.session_state.selected_days = {}
 # Function to fetch recipes while adhering to API v2 rules
 def fetch_recipes(query, diet_type, calorie_limit, next_page=None):
     if next_page:
